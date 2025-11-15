@@ -30,7 +30,7 @@ export default function SwipeToLoad() {
     transition: {
       duration: 2.5,
       repeat: Infinity,
-      ease: 'easeInOut',
+      ease: 'easeInOut' as const,
       times: [0, 0.3, 0.6, 0.8, 0.9, 1],
     },
   };

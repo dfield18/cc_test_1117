@@ -391,7 +391,7 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
         console.warn('All recommendations were filtered out. Using top similar cards as fallback.');
         finalRecommendations = similarCards.slice(0, 3).map((cardData) => ({
           credit_card_name: cardData.card.credit_card_name,
-          apply_url: cardData.card.url_application || cardData.card.url || '',
+          apply_url: String(cardData.card.url_application || cardData.card.url || ''),
           reason: `This card matches your criteria based on ${cardData.card.rewards || 'its features'}.`,
         }));
       }
@@ -418,7 +418,7 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
           console.log('Rebuilding summary to ensure all cards are displayed with proper formatting...');
           
           // Try to extract opening paragraph from summary (first 2-3 sentences)
-          const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
+          const sentences = summary.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
           let openingParagraph = '';
           if (sentences.length >= 2) {
             openingParagraph = sentences.slice(0, 2).join('. ').trim() + '.';
