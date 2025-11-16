@@ -556,9 +556,9 @@ export default function Home() {
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"></div>
       </div>
       
-      <div className="container mx-auto px-6 py-12 max-w-7xl relative z-10">
+      <div className={`container mx-auto px-6 max-w-7xl relative z-10 ${messages.length > 0 ? 'py-4 md:py-6' : 'py-12'}`}>
         {/* Hero Section */}
-        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-8 md:py-12 mb-6' : 'py-16 md:py-24 mb-10'}`}>
+        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-4 md:py-6 mb-2' : 'py-16 md:py-24 mb-10'}`}>
           {/* Hero content */}
           <div className="relative z-10 max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
@@ -581,8 +581,8 @@ export default function Home() {
 
         {/* Header - Feature boxes - Only show after user asks a question */}
         {messages.length > 0 && (
-          <header className="mb-6 text-center">
-            <div className="flex justify-center gap-3 mb-8">
+          <header className="mb-3 text-center">
+            <div className="flex justify-center gap-3 mb-4">
               {/* AI-Powered */}
               <div className="bg-white/80 backdrop-blur-sm rounded-lg px-5 py-2.5 border border-slate-200/60 flex items-center gap-2.5 shadow-sm">
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -683,14 +683,14 @@ export default function Home() {
         <div className={`grid gap-6 mb-6 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-5' : 'grid-cols-1 max-w-2xl mx-auto'}`} style={{ height: messages.some(msg => msg.role === 'user') ? '700px' : '500px', maxHeight: messages.some(msg => msg.role === 'user') ? '700px' : '500px', overflow: 'hidden' }}>
           {/* Left Column - Chatbot */}
           <div className={`${messages.some(msg => msg.role === 'user') ? 'col-span-2' : 'col-span-1'} flex flex-col`} style={{ height: messages.some(msg => msg.role === 'user') ? '700px' : '500px', maxHeight: messages.some(msg => msg.role === 'user') ? '700px' : '500px', overflow: 'hidden' }}>
-            <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-8' : 'p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
+            <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 md:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200 flex-shrink-0`}>
                 <h3 className={`${messages.some(msg => msg.role === 'user') ? 'text-xl' : 'text-lg'} font-semibold text-slate-900 mb-1`}>Your Questions</h3>
                 <p className="text-sm text-slate-500 font-light">Ask me anything about credit cards</p>
               </div>
               <div 
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto mb-4 space-y-3 min-h-0 max-h-full scrollbar-thin"
+                className="flex-1 overflow-y-auto mb-4 min-h-0 max-h-full scrollbar-thin px-1"
                 style={{ scrollbarWidth: 'thin' }}
               >
               {(
@@ -719,78 +719,142 @@ export default function Home() {
                         return summary;
                       };
 
+                      // Check if this is an error/fallback message (specifically the "I couldn't find" message)
+                      const isErrorMessage = message.summary && (
+                        message.summary.toLowerCase().includes("i couldn't find") ||
+                        message.summary.toLowerCase().includes("couldn't find any credit cards")
+                      );
+
                       return (
-                        <div key={index} className="space-y-3" data-message-index={index}>
-                          <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl p-4 shadow-lg shadow-teal-500/30">
-                            <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed">{message.content}</p>
+                        <div key={index} className="mb-6 max-w-2xl mx-auto" data-message-index={index}>
+                          {/* User Message */}
+                          <div className="flex items-start gap-3 mb-4">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-sm">
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl p-4 px-5 shadow-sm flex-1 transition-all duration-200">
+                              <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed break-words">{message.content}</p>
+                            </div>
                           </div>
+                          
+                          {/* Bot Response */}
                           {message.summary && (
-                            <div className="bg-gradient-to-br from-slate-50 to-blue-50/20 border border-slate-200/80 rounded-xl p-5 text-sm text-slate-700 shadow-md shadow-slate-100/50">
-                              <div className="prose prose-sm max-w-none">
-                                <ReactMarkdown
-                                  components={{
-                                    a: ({ ...props }) => (
-                                      <a 
-                                        {...props} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-teal-600 font-semibold hover:text-teal-700 underline decoration-2 decoration-teal-300 hover:decoration-teal-500 transition-colors"
-                                      />
-                                    ),
-                                    strong: ({ ...props }) => (
-                                      <strong className="font-semibold text-slate-900" {...props} />
-                                    ),
-                                    h2: ({ ...props }) => (
-                                      <h2 className="text-base font-semibold text-slate-900 mt-4 mb-3" {...props} />
-                                    ),
-                                    h3: ({ ...props }) => (
-                                      <h3 className="text-base font-semibold text-slate-900 mt-3 mb-2" {...props} />
-                                    ),
-                                    p: ({ ...props }) => (
-                                      <p className="mb-3 leading-relaxed text-slate-700" {...props} />
-                                    ),
-                                    ul: ({ ...props }) => (
-                                      <ul className="list-none space-y-3 my-3" {...props} />
-                                    ),
-                                    li: ({ ...props }) => (
-                                      <li className="mb-4 leading-relaxed text-slate-700" {...props} />
-                                    ),
-                                  }}
-                                >
-                                  {(() => {
-                                    // Process markdown and ensure all cards are included
-                                    let displayText = message.recommendations && message.recommendations.length > 0
-                                      ? processMarkdownSummary(message.summary, message.recommendations)
-                                      : message.summary;
-                                    
-                                    // If we have recommendations but they're not in the summary, append them
-                                    if (message.recommendations && message.recommendations.length > 0) {
-                                      const summaryLower = displayText.toLowerCase();
-                                      const missingCards = message.recommendations.filter(rec => {
-                                        const cardNameLower = rec.credit_card_name.toLowerCase();
-                                        return !summaryLower.includes(cardNameLower);
-                                      });
-                                      
-                                      if (missingCards.length > 0) {
-                                        const cardsText = missingCards.map(rec => 
-                                          `- **[${rec.credit_card_name}](${rec.apply_url})** - ${rec.reason}`
-                                        ).join('\n\n');
-                                        displayText = displayText + '\n\n' + cardsText;
-                                      }
-                                    }
-                                    
-                                    return displayText;
-                                  })()}
-                                </ReactMarkdown>
+                            <div className={`flex items-start gap-3 ${isErrorMessage ? '' : 'mb-0'}`}>
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
+                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
                               </div>
+                              {isErrorMessage ? (
+                                <div className="flex-1 bg-blue-50 rounded-xl p-4 px-5 shadow-sm border border-blue-100 transition-all duration-200">
+                                  <div className="flex items-start gap-2 mb-3">
+                                    <span className="text-xl flex-shrink-0">💡</span>
+                                    <p className="text-[15px] text-slate-700 leading-relaxed font-medium break-words">
+                                      Let me help you find the right card. Try asking about specific features like:
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 mt-4">
+                                    {[
+                                      "Cards with no annual fee",
+                                      "Best cash back rewards",
+                                      "Travel cards under $100/year"
+                                    ].map((suggestion, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => handleSuggestedQuestion(suggestion)}
+                                        disabled={isLoading}
+                                        className="border border-teal-600 text-teal-600 rounded-full px-4 py-2 text-sm font-medium hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {suggestion}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-2xl transition-all duration-200">
+                                  <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown
+                                      components={{
+                                        a: ({ ...props }) => (
+                                          <a 
+                                            {...props} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-teal-600 font-semibold hover:text-teal-700 underline decoration-2 decoration-teal-300 hover:decoration-teal-500 transition-colors duration-200"
+                                          />
+                                        ),
+                                        strong: ({ ...props }) => (
+                                          <strong className="font-semibold text-slate-900" {...props} />
+                                        ),
+                                        h2: ({ ...props }) => (
+                                          <h2 className="text-base font-semibold text-slate-900 mt-4 mb-3" {...props} />
+                                        ),
+                                        h3: ({ ...props }) => (
+                                          <h3 className="text-base font-semibold text-slate-900 mt-3 mb-2" {...props} />
+                                        ),
+                                        p: ({ ...props }) => (
+                                          <p className="mb-3 text-[15px] leading-[1.6] text-slate-700 break-words" {...props} />
+                                        ),
+                                        ul: ({ ...props }) => (
+                                          <ul className="list-none space-y-3 my-3" {...props} />
+                                        ),
+                                        li: ({ ...props }) => (
+                                          <li className="mb-4 text-[15px] leading-[1.6] text-slate-700 break-words" {...props} />
+                                        ),
+                                      }}
+                                    >
+                                      {(() => {
+                                        // Process markdown and ensure all cards are included
+                                        let displayText = message.recommendations && message.recommendations.length > 0
+                                          ? processMarkdownSummary(message.summary, message.recommendations)
+                                          : message.summary;
+                                        
+                                        // If we have recommendations but they're not in the summary, append them
+                                        if (message.recommendations && message.recommendations.length > 0) {
+                                          const summaryLower = displayText.toLowerCase();
+                                          const missingCards = message.recommendations.filter(rec => {
+                                            const cardNameLower = rec.credit_card_name.toLowerCase();
+                                            return !summaryLower.includes(cardNameLower);
+                                          });
+                                          
+                                          if (missingCards.length > 0) {
+                                            const cardsText = missingCards.map(rec => 
+                                              `- **[${rec.credit_card_name}](${rec.apply_url})** - ${rec.reason}`
+                                            ).join('\n\n');
+                                            displayText = displayText + '\n\n' + cardsText;
+                                          }
+                                        }
+                                        
+                                        return displayText;
+                                      })()}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                       );
                     })}
                   {isLoading && (
-                    <div className="bg-slate-100 rounded-xl p-4 border border-slate-200">
-                      <p className="text-slate-600 text-sm font-medium">Sending...</p>
+                    <div className="flex items-start gap-3 mb-6 max-w-2xl mx-auto">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-600 text-[15px] font-medium">Thinking</span>
+                          <div className="flex gap-1 ml-2">
+                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
@@ -819,20 +883,20 @@ export default function Home() {
             </div>
             
             {/* Input Area */}
-            <div className={`flex gap-3 mt-auto border-t border-slate-200 flex-shrink-0 ${messages.some(msg => msg.role === 'user') ? 'pt-6' : 'pt-4'}`}>
+            <div className={`flex gap-3 mt-auto border-t border-slate-200 flex-shrink-0 ${messages.some(msg => msg.role === 'user') ? 'pt-4 md:pt-6' : 'pt-3 md:pt-4'}`}>
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about credit cards..."
-                  className="flex-1 px-5 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all"
+                  className="flex-1 px-4 md:px-5 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm bg-white shadow-sm transition-all duration-200"
                   disabled={isLoading}
                 />
                 <button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center min-w-[56px] shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40"
+                  className="px-5 md:px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 text-sm flex items-center justify-center min-w-[56px] shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
