@@ -5,7 +5,7 @@ import { Recommendation } from '@/types';
 import SwipeToLoad from '@/components/SwipeToLoad';
 import CartoonDisplay from '@/components/CartoonDisplay';
 import ReactMarkdown from 'react-markdown';
-import { Plane, ShoppingCart, Shield, User, Sparkles } from 'lucide-react';
+import { Plane, ShoppingCart, Shield, User, Sparkles, CreditCard } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -16,9 +16,9 @@ interface Message {
 
 const SUGGESTED_QUESTIONS = [
   { text: 'What\'s the best card for travel?', description: 'Maximize points on flights and hotels', icon: 'travel' },
-  { text: 'What\'s the best card for groceries and gas?', description: 'Earn cashback on everyday purchases', icon: 'shopping' },
-  { text: 'What are the best cards with no annual fee?', description: 'Get great rewards without yearly costs', icon: 'shield' },
-  { text: 'What are the best premium travel cards?', description: 'Elite perks and lounge access', icon: 'premium' },
+  { text: 'How can I earn cash back on everyday purchases', description: 'Earn cashback on everyday purchases', icon: 'shopping' },
+  { text: 'Show the best cards with no annual fee', description: 'Get great rewards without yearly costs', icon: 'creditcard' },
+  { text: 'Recommend luxury travel credit cards?', description: 'Elite perks and lounge access', icon: 'premium' },
 ];
 
 export default function Home() {
@@ -571,13 +571,15 @@ export default function Home() {
     
     switch (iconType) {
       case 'travel':
-        return <Plane className="h-6 w-6" color={iconColor} strokeWidth={2} />;
+        return <Plane className="h-5 w-5" color={iconColor} strokeWidth={2} />;
       case 'shopping':
-        return <ShoppingCart className="h-6 w-6" color={iconColor} strokeWidth={2} />;
+        return <ShoppingCart className="h-5 w-5" color={iconColor} strokeWidth={2} />;
       case 'shield':
-        return <Shield className="h-6 w-6" color={iconColor} strokeWidth={2} />;
+        return <Shield className="h-5 w-5" color={iconColor} strokeWidth={2} />;
+      case 'creditcard':
+        return <CreditCard className="h-5 w-5" color={iconColor} strokeWidth={2} />;
       case 'premium':
-        return <User className="h-6 w-6" color={iconColor} strokeWidth={2} />;
+        return <User className="h-5 w-5" color={iconColor} strokeWidth={2} />;
       default:
         return null;
     }
@@ -620,12 +622,12 @@ export default function Home() {
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"></div>
       </div>
       
-      <div className={`container mx-auto px-6 max-w-7xl relative z-10 ${messages.length > 0 ? 'py-4 md:py-6' : 'py-12'}`}>
+      <div className={`container mx-auto px-6 max-w-7xl relative z-10 ${messages.length > 0 ? 'py-4 md:py-6' : 'py-6 md:py-8'}`}>
         {/* Hero Section */}
-        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-4 md:py-6 mb-2' : 'py-16 md:py-24 mb-6'}`}>
+        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-4 md:py-6 mb-2' : 'py-2 md:py-4 mb-4'}`}>
           {/* Hero content */}
           <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 tracking-tight">
               <span className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
                 Find Your Perfect
               </span>
@@ -636,7 +638,7 @@ export default function Home() {
             </h1>
             
             {messages.length === 0 && (
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 Get personalized credit card recommendations powered by AI.<br />
                 Find the perfect card for your spending habits and financial goals.
               </p>
@@ -678,29 +680,29 @@ export default function Home() {
 
         {/* Popular Questions Section - Only show when no messages */}
         {messages.length === 0 && (
-          <div className="max-w-6xl mx-auto mb-10">
-            <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="max-w-6xl mx-auto mt-16 md:mt-20 mb-12">
+            <div className="flex items-center justify-center gap-2 mb-5">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary">
                 <Sparkles className="w-5 h-5 text-white" strokeWidth={2} />
               </div>
-              <h3 className="text-3xl font-bold text-foreground">Popular Questions</h3>
+              <h3 className="text-2xl md:text-3xl font-bold text-foreground">Popular Questions</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
               {SUGGESTED_QUESTIONS.map((question, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestedQuestion(question.text)}
-                  className="bg-white rounded-xl p-6 border border-slate-200 hover:border-blue-300 hover:shadow-md hover:scale-105 transition-all duration-200 min-h-[200px] flex flex-col"
+                  className="bg-white rounded-xl p-4 border border-slate-200 hover:border-blue-300 hover:shadow-md hover:scale-105 transition-all duration-200 min-h-[140px] flex flex-col"
                 >
-                  <div className="flex flex-col items-center text-center gap-4 flex-1">
-                    <div className="flex-shrink-0 rounded-full bg-primary/10 p-4 flex items-center justify-center">
+                  <div className="flex flex-col items-center text-center gap-2 flex-1">
+                    <div className="flex-shrink-0 rounded-full bg-primary/10 p-2 flex items-center justify-center">
                       {renderSuggestedIcon(question.icon)}
                     </div>
                     <div className="flex-1 min-w-0 w-full flex flex-col justify-center">
-                      <h3 className="font-bold text-foreground mb-2 text-lg leading-tight">
+                      <h3 className="font-bold text-foreground mb-1.5 text-sm md:text-base leading-tight">
                         {question.text}
                       </h3>
-                      <p className="text-base text-muted-foreground leading-snug">
+                      <p className="text-xs md:text-sm text-muted-foreground leading-snug">
                         {question.description}
                       </p>
                     </div>
@@ -713,7 +715,7 @@ export default function Home() {
 
         {/* Input Field at Bottom - Only show when no messages */}
         {messages.length === 0 && (
-          <div className="max-w-2xl mx-auto mt-8 mb-6">
+          <div className="max-w-2xl mx-auto mt-12 mb-4">
             <div className="flex gap-3">
               <input
                 type="text"
@@ -734,7 +736,7 @@ export default function Home() {
                 </svg>
               </button>
             </div>
-            <div className="mt-3 text-center text-xs text-slate-500 space-x-4">
+            <div className="mt-2 text-center text-xs text-slate-500 space-x-4">
               <span>✓ Enter to send</span>
               <span>✨ Instant AI recommendations</span>
             </div>
