@@ -254,12 +254,12 @@ IMPORTANT: Include ALL relevant information about the card. Make it comprehensiv
       credit_card_name: response.card_name || cardData.credit_card_name,
       apply_url: response.apply_url || String(cardData.url_application || ''),
       reason: response.summary || `Information about ${cardData.credit_card_name}`,
-      intro_offer: cardData.intro_offer || cardData.welcome_bonus || cardData.sign_up_bonus || cardData.intro_bonus || '',
-      application_fee: cardData.application_fee || cardData.app_fee || '',
-      credit_score_needed: cardData.credit_score_needed || cardData.credit_score || cardData.min_credit_score || cardData.credit_score_required || '',
-      annual_fee: cardData.annual_fee || cardData.fee || '',
-      rewards_rate: cardData.rewards_rate || cardData.rewards || cardData.reward_rate || '',
-      perks: cardData.perks || cardData.benefits || cardData.card_perks || '',
+      intro_offer: String(cardData.intro_offer || cardData.welcome_bonus || cardData.sign_up_bonus || cardData.intro_bonus || ''),
+      application_fee: String(cardData.application_fee || cardData.app_fee || ''),
+      credit_score_needed: String(cardData.credit_score_needed || cardData.credit_score || cardData.min_credit_score || cardData.credit_score_required || ''),
+      annual_fee: String(cardData.annual_fee || cardData.fee || ''),
+      rewards_rate: String(cardData.rewards_rate || cardData.rewards || cardData.reward_rate || ''),
+      perks: String(cardData.perks || cardData.benefits || cardData.card_perks || ''),
     };
     
     const title = await generateRecommendationTitle(userQuery);
@@ -955,12 +955,12 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
             credit_card_name: rec.credit_card_name,
             apply_url: rec.apply_url || String(card.url_application || ''),
             reason: rec.reason || '',
-            intro_offer: card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || '',
-            application_fee: card.application_fee || card.app_fee || '',
-            credit_score_needed: card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || '',
-            annual_fee: card.annual_fee || card.fee || '',
-            rewards_rate: card.rewards_rate || card.rewards || card.reward_rate || '',
-            perks: card.perks || card.benefits || card.card_perks || '',
+            intro_offer: String(card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || ''),
+            application_fee: String(card.application_fee || card.app_fee || ''),
+            credit_score_needed: String(card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || ''),
+            annual_fee: String(card.annual_fee || card.fee || ''),
+            rewards_rate: String(card.rewards_rate || card.rewards || card.reward_rate || ''),
+            perks: String(card.perks || card.benefits || card.card_perks || ''),
           };
         }
         return rec;
@@ -976,12 +976,12 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
             credit_card_name: card.credit_card_name,
             apply_url: String(card.url_application || card.url || ''),
             reason: `This card matches your criteria based on ${card.rewards || 'its features'}.`,
-            intro_offer: card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || '',
-            application_fee: card.application_fee || card.app_fee || '',
-            credit_score_needed: card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || '',
-            annual_fee: card.annual_fee || card.fee || '',
-            rewards_rate: card.rewards_rate || card.rewards || card.reward_rate || '',
-            perks: card.perks || card.benefits || card.card_perks || '',
+            intro_offer: String(card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || ''),
+            application_fee: String(card.application_fee || card.app_fee || ''),
+            credit_score_needed: String(card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || ''),
+            annual_fee: String(card.annual_fee || card.fee || ''),
+            rewards_rate: String(card.rewards_rate || card.rewards || card.reward_rate || ''),
+            perks: String(card.perks || card.benefits || card.card_perks || ''),
           };
         });
       }
@@ -1003,12 +1003,12 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
             credit_card_name: card.credit_card_name,
             apply_url: String(card.url_application || card.url || ''),
             reason: `This card matches your criteria based on ${card.rewards || 'its features'}.`,
-            intro_offer: card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || '',
-            application_fee: card.application_fee || card.app_fee || '',
-            credit_score_needed: card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || '',
-            annual_fee: card.annual_fee || card.fee || '',
-            rewards_rate: card.rewards_rate || card.rewards || card.reward_rate || '',
-            perks: card.perks || card.benefits || card.card_perks || '',
+            intro_offer: String(card.intro_offer || card.welcome_bonus || card.sign_up_bonus || card.intro_bonus || ''),
+            application_fee: String(card.application_fee || card.app_fee || ''),
+            credit_score_needed: String(card.credit_score_needed || card.credit_score || card.min_credit_score || card.credit_score_required || ''),
+            annual_fee: String(card.annual_fee || card.fee || ''),
+            rewards_rate: String(card.rewards_rate || card.rewards || card.reward_rate || ''),
+            perks: String(card.perks || card.benefits || card.card_perks || ''),
           });
         });
       }
