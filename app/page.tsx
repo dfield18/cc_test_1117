@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Recommendation } from '@/types';
 import SwipeToLoad from '@/components/SwipeToLoad';
 import CartoonDisplay from '@/components/CartoonDisplay';
@@ -31,6 +31,11 @@ const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
   },
   { text: 'Show the best cards with no annual fee', description: 'Get great rewards without yearly costs', icon: 'creditcard' },
   { text: 'Recommend luxury travel credit cards?', description: 'Elite perks and lounge access', icon: 'premium' },
+  { text: 'Which cards are best for beginners or first-time credit users?', description: 'Easy approvals and simple rewards', icon: 'creditcard' },
+  { text: 'What card should I get to build credit?', description: 'Secured and starter options', icon: 'creditcard' },
+  { text: 'What are the best business credit cards?', description: 'Top rewards for small business spending', icon: 'premium' },
+  { text: 'Show top cards for streaming and subscriptions', description: 'Earn more on Netflix, Spotify, etc.', icon: 'shopping' },
+  { text: 'Which cards offer the best welcome bonuses?', description: 'High-value intro rewards', icon: 'travel' },
 ];
 
 const FUN_LOADING_MESSAGES = [
@@ -68,6 +73,15 @@ export default function Home() {
   // Track previous user message count to detect new questions
   const prevUserMessageCountRef = useRef(0);
   
+  // Randomly select 4 questions for desktop display (client-side only to avoid hydration issues)
+  const [desktopQuestions, setDesktopQuestions] = useState<SuggestedQuestion[]>([]);
+  
+  useEffect(() => {
+    // Only run on client side to avoid hydration mismatch
+    const shuffled = [...SUGGESTED_QUESTIONS].sort(() => Math.random() - 0.5);
+    setDesktopQuestions(shuffled.slice(0, 4));
+  }, []);
+  
   // Keep ref in sync with state
   useEffect(() => {
     shownCartoonsRef.current = shownCartoons;
@@ -79,9 +93,23 @@ export default function Home() {
     if (!leftBox) return;
 
     const handleScroll = () => {
-      // If user scrolls down (not at top), mark as manually scrolled
-      if (leftBox.scrollTop > 10) {
-        userHasScrolledLeftRef.current = true;
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024; // lg breakpoint
+      
+      if (isMobile) {
+        // On mobile: check if user has scrolled away from the top (where most recent question is)
+        // Allow a small threshold (50px) to account for rounding
+        if (leftBox.scrollTop > 50) {
+          // User has scrolled down from top, mark as manually scrolled
+          userHasScrolledLeftRef.current = true;
+        }
+      } else {
+        // On desktop: check if user has scrolled up from the bottom (not at bottom)
+        // Allow a small threshold (50px) to account for rounding
+        const isAtBottom = leftBox.scrollHeight - leftBox.scrollTop - leftBox.clientHeight < 50;
+        if (!isAtBottom) {
+          // User has scrolled up from bottom, mark as manually scrolled
+          userHasScrolledLeftRef.current = true;
+        }
       }
     };
 
@@ -137,71 +165,75 @@ export default function Home() {
   }, [messages]);
 
   useEffect(() => {
-    // Scroll the left box to show the most recent question at the top
-    const userMessages = messages.filter((msg) => msg.role === 'user');
-    const currentUserMessageCount = userMessages.length;
-    
-    // Scroll whenever messages change (including when summaries are added)
-    if (currentUserMessageCount > 0 && chatContainerRef.current) {
-      const lastUserMessageIndex = currentUserMessageCount - 1;
+    // Scroll the left box - on mobile, show most recent question at top; on desktop, show at bottom
+    // Only auto-scroll if user hasn't manually scrolled
+    if (chatContainerRef.current && !userHasScrolledLeftRef.current) {
+      const userMessages = messages.filter((msg) => msg.role === 'user');
+      const currentUserMessageCount = userMessages.length;
+      const isNewQuestion = currentUserMessageCount > prevUserMessageCountRef.current;
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024; // lg breakpoint
       
-      // Wait for DOM to update, then scroll
-      const scrollToLatest = () => {
+      const scrollToLatest = (useSmooth: boolean = true) => {
         if (!chatContainerRef.current) return;
         
-        // Get all user message elements within the left box
-        const messageElements = chatContainerRef.current.querySelectorAll('[data-message-index]');
-        if (messageElements.length === 0 || lastUserMessageIndex < 0) return;
-        
-        // Find the element for the most recent user message
-        const lastMessageElement = Array.from(messageElements).find((el) => {
-          const index = parseInt(el.getAttribute('data-message-index') || '-1');
-          return index === lastUserMessageIndex;
-        });
-        
-        if (!lastMessageElement) return;
-        
         const container = chatContainerRef.current;
-        const element = lastMessageElement as HTMLElement;
         
-        // Use scrollIntoView with block: 'start' to position at top
-        // But we need to scroll the container, not the window
-        // So we'll calculate the position manually
-        
-        // Get the element's position relative to the container
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-        
-        // Calculate the scroll position needed
-        // elementRect.top is relative to viewport, containerRect.top is container's viewport position
-        // The difference tells us how far the element is from the container's top
-        // Add current scrollTop to get absolute position in scrollable content
-        const currentScrollTop = container.scrollTop;
-        const elementTopRelativeToContainer = elementRect.top - containerRect.top;
-        const targetScrollTop = currentScrollTop + elementTopRelativeToContainer;
-        
-        // Scroll to position the element at the very top (use smooth scrolling)
-        container.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
+        if (isMobile && currentUserMessageCount > 0) {
+          // On mobile: scroll to position the most recent question at the top
+          const lastUserMessageIndex = currentUserMessageCount - 1;
+          const messageElements = container.querySelectorAll('[data-message-index]');
+          
+          const lastMessageElement = Array.from(messageElements).find((el) => {
+            const index = parseInt(el.getAttribute('data-message-index') || '-1');
+            return index === lastUserMessageIndex;
+          });
+          
+          if (lastMessageElement) {
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = lastMessageElement.getBoundingClientRect();
+            const elementTopRelativeToContainer = elementRect.top - containerRect.top;
+            const currentScrollTop = container.scrollTop;
+            const targetScrollTop = currentScrollTop + elementTopRelativeToContainer;
+            
+            container.scrollTo({
+              top: targetScrollTop,
+              behavior: useSmooth ? 'smooth' : 'auto'
+            });
+          }
+        } else {
+          // On desktop: scroll to bottom to show latest messages
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: useSmooth ? 'smooth' : 'auto'
+          });
+        }
       };
       
-      // Try multiple times to ensure DOM is fully updated (especially for summaries)
-      const timeout1 = setTimeout(scrollToLatest, 200);
-      const timeout2 = setTimeout(scrollToLatest, 400);
-      const timeout3 = setTimeout(scrollToLatest, 600);
-      
-      return () => {
-        clearTimeout(timeout1);
-        clearTimeout(timeout2);
-        clearTimeout(timeout3);
-      };
+      // For new questions, use smooth scrolling. For initial load or updates, use instant scroll
+      if (isNewQuestion) {
+        // Try multiple times to ensure DOM is fully updated (especially for summaries)
+        const timeout1 = setTimeout(() => scrollToLatest(true), 100);
+        const timeout2 = setTimeout(() => scrollToLatest(true), 300);
+        const timeout3 = setTimeout(() => scrollToLatest(true), 500);
+        
+        return () => {
+          clearTimeout(timeout1);
+          clearTimeout(timeout2);
+          clearTimeout(timeout3);
+        };
+      } else {
+        // Instant scroll for initial load or when summaries are added
+        scrollToLatest(false);
+      }
     }
     
     // Update the ref to track the current count
+    const userMessages = messages.filter((msg) => msg.role === 'user');
+    const currentUserMessageCount = userMessages.length;
     if (currentUserMessageCount > prevUserMessageCountRef.current) {
       prevUserMessageCountRef.current = currentUserMessageCount;
+      // Reset scroll tracking when a new question is asked
+      userHasScrolledLeftRef.current = false;
     } else if (currentUserMessageCount === 0) {
       prevUserMessageCountRef.current = 0;
     }
@@ -695,9 +727,12 @@ export default function Home() {
             </h1>
             
             {messages.length === 0 && (
-              <p className="text-sm lg:text-xl text-muted-foreground max-w-2xl mx-auto leading-tight lg:leading-relaxed">
-                Get personalized credit card recommendations powered by AI.<br />
-                Find the perfect card for your spending habits and financial goals.
+              <p className="text-lg lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-tight lg:leading-relaxed">
+                <span className="lg:hidden">Get personalized credit card recommendations powered by AI.</span>
+                <span className="hidden lg:inline">
+                  Get personalized credit card recommendations powered by AI.<br />
+                  Find the perfect card for your spending habits and financial goals.
+                </span>
               </p>
             )}
           </div>
@@ -795,7 +830,7 @@ export default function Home() {
             </div>
             {/* Desktop Grid */}
             <div className="hidden lg:grid grid-cols-4 gap-3 max-w-5xl mx-auto">
-              {SUGGESTED_QUESTIONS.map((question, index) => (
+              {desktopQuestions.map((question, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestedQuestion(question.text)}
@@ -865,7 +900,7 @@ export default function Home() {
         {messages.length > 0 && (
         <div className={`grid gap-6 mb-6 mt-12 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 lg:grid-cols-5' : 'grid-cols-1 max-w-2xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
           {/* Left Column - Chatbot */}
-          <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-2' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
+          <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-2' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'h-[600px] lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
             <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200 flex-shrink-0`}>
                 <h3 className={`${messages.some(msg => msg.role === 'user') ? 'text-xl' : 'text-lg'} font-semibold text-slate-900 mb-1`}>Your Questions</h3>
@@ -1051,10 +1086,10 @@ export default function Home() {
                             key={index}
                             onClick={() => handleSuggestedQuestion(suggestion)}
                             disabled={isLoading}
-                            className="px-4 py-3 h-12 md:h-auto bg-white border border-slate-200 rounded-xl text-base md:text-sm text-slate-700 hover:bg-slate-50 hover:border-teal-300 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                            className="px-4 py-3 min-h-12 bg-white border border-slate-200 rounded-xl text-base md:text-sm text-slate-700 hover:bg-slate-50 hover:border-teal-300 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                           >
-                            <span className="text-lg group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
-                            <span className="text-left flex-1 font-medium">{suggestion}</span>
+                            <span className="text-lg group-hover:scale-110 transition-transform flex-shrink-0">{getSuggestionIcon(suggestion)}</span>
+                            <span className="text-left flex-1 font-medium break-words">{suggestion}</span>
                           </button>
                         ))}
                       </div>
@@ -1102,7 +1137,7 @@ export default function Home() {
 
           {/* Right Column - Credit Card Recommendations - Only show after a question is asked */}
           {messages.some(msg => msg.role === 'user') && (
-          <div className="lg:col-span-3 flex flex-col lg:h-[700px]" style={{ overflow: 'hidden' }}>
+          <div className="lg:col-span-3 flex flex-col h-[500px] lg:h-[700px]" style={{ overflow: 'hidden' }}>
             <div className="bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 p-4 lg:p-8 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50" style={{ maxHeight: '100%', overflow: 'hidden' }}>
               <div className="flex items-center gap-3 mb-6 lg:mb-8 flex-shrink-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
