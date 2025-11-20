@@ -256,7 +256,10 @@ export default function Home() {
     const carousel = suggestionsCarouselRef.current;
     if (!carousel) return;
 
-    const handleScroll = () => {
+    let rafId: number | null = null;
+    let isScrolling = false;
+
+    const updateScrollState = () => {
       const scrollLeft = carousel.scrollLeft;
       // Mobile card width is 200px, desktop is 280px
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
@@ -293,11 +296,27 @@ export default function Home() {
       // Clamp and set progress - ensure it can reach 1.0
       const finalProgress = Math.max(0, Math.min(progress, 1.0));
       setSuggestionsCarouselScrollProgress(finalProgress);
+      
+      isScrolling = false;
+      rafId = null;
     };
 
-    carousel.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', handleScroll);
+    const handleScroll = () => {
+      if (!isScrolling) {
+        isScrolling = true;
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(updateScrollState);
+      }
+    };
+
+    carousel.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       carousel.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
     };
@@ -2090,7 +2109,14 @@ export default function Home() {
                         style={{
                           WebkitOverflowScrolling: 'touch',
                           scrollBehavior: 'smooth',
-                          overscrollBehaviorX: 'contain'
+                          overscrollBehaviorX: 'contain',
+                          scrollSnapType: 'x mandatory',
+                          scrollPadding: '0 1rem',
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          WebkitScrollSnapType: 'x mandatory',
+                          scrollSnapStop: 'normal',
+                          willChange: 'scroll-position'
                         }}
                       >
                         {dynamicSuggestions.slice(0, 4).map((suggestion, index) => (
@@ -2246,7 +2272,15 @@ export default function Home() {
                     style={{
                       WebkitOverflowScrolling: 'touch',
                       scrollBehavior: 'smooth',
-                      overscrollBehaviorX: 'contain'
+                      overscrollBehaviorX: 'contain',
+                      scrollSnapType: 'x mandatory',
+                      scrollPadding: '0 1rem',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                      WebkitScrollSnapType: 'x mandatory',
+                      scrollSnapStop: 'normal',
+                      willChange: 'scroll-position',
+                      touchAction: 'pan-x'
                     }}
                   >
                     {dynamicSuggestions.slice(0, 4).map((suggestion, index) => (
