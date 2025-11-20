@@ -5,7 +5,7 @@ import { Recommendation } from '@/types';
 import SwipeToLoad from '@/components/SwipeToLoad';
 import CartoonDisplay from '@/components/CartoonDisplay';
 import ReactMarkdown from 'react-markdown';
-import { Plane, ShoppingCart, Shield, User, Sparkles, CreditCard, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plane, ShoppingCart, Shield, User, Sparkles, CreditCard, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -71,6 +71,7 @@ export default function Home() {
   const [suggestionsCarouselIndex, setSuggestionsCarouselIndex] = useState(0);
   const [popularQuestionsCarouselIndex, setPopularQuestionsCarouselIndex] = useState(centerIndex);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(new Set());
   const shownCartoonsRef = useRef<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -1435,7 +1436,7 @@ export default function Home() {
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"></div>
       </div>
       
-      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-20 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8'} ${messages.length > 0 ? 'pb-4 md:pb-6' : 'pb-6 md:pb-8'} ${topThreeRecommendations.length > 0 ? 'pb-24 lg:pb-0' : ''}`}>
+      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-20 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8'} ${messages.length > 0 ? 'pb-4 md:pb-6' : 'pb-6 md:pb-8'}`}>
         {/* Hero Section */}
         <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-4 md:py-6 mb-2' : 'py-2 md:py-4 mb-4'}`}>
           {/* Hero content */}
@@ -1702,7 +1703,7 @@ export default function Home() {
         <div className={`grid gap-6 mb-6 mt-12 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 lg:grid-cols-5' : 'grid-cols-1 max-w-2xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
           {/* Left Column - Chatbot */}
           <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-2' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'h-[600px] lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
-            <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
+            <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden', overflowX: 'hidden' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200 flex-shrink-0`}>
                 <h3 className={`${messages.some(msg => msg.role === 'user') ? 'text-xl' : 'text-lg'} font-semibold text-slate-900 mb-1`}>Your Questions</h3>
                 <p className="text-base text-muted-foreground">Ask me anything about credit cards</p>
@@ -1743,12 +1744,12 @@ export default function Home() {
                 }}
                 className={`flex-1 mb-4 min-h-0 max-h-full px-1 lg:[direction:rtl] ${
                   messages.some(msg => msg.role === 'user') 
-                    ? 'overflow-y-auto scrollbar-thin' 
+                    ? 'overflow-y-auto overflow-x-hidden scrollbar-thin' 
                     : 'overflow-hidden scrollbar-hide'
                 }`}
-                style={messages.some(msg => msg.role === 'user') ? { scrollbarWidth: 'thin' } : { overflow: 'hidden', scrollbarWidth: 'none' }}
+                style={messages.some(msg => msg.role === 'user') ? { scrollbarWidth: 'thin', overflowX: 'hidden', touchAction: 'pan-y' } : { overflow: 'hidden', scrollbarWidth: 'none' }}
               >
-              <div className="lg:[direction:ltr]">
+              <div className="lg:[direction:ltr] overflow-x-hidden min-w-0">
               {(
                 <>
                   {messages
@@ -1782,7 +1783,7 @@ export default function Home() {
                       );
 
                       return (
-                        <div key={index} className="mb-6 max-w-2xl mx-auto" data-message-index={index}>
+                        <div key={index} className="mb-6 max-w-2xl mx-auto overflow-x-hidden min-w-0" data-message-index={index}>
                           {/* User Message */}
                           <div className="flex items-start gap-3 mb-4">
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-sm">
@@ -1790,8 +1791,8 @@ export default function Home() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                             </div>
-                            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl p-4 px-5 shadow-sm flex-1 transition-all duration-200">
-                              <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed break-words">{message.content}</p>
+                            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl p-4 px-5 shadow-sm flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                              <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
                             </div>
                           </div>
                           
@@ -1804,7 +1805,7 @@ export default function Home() {
                                 </svg>
                               </div>
                               {isErrorMessage ? (
-                                <div className="flex-1 bg-blue-50 rounded-xl p-4 px-5 shadow-sm border border-blue-100 transition-all duration-200">
+                                <div className="flex-1 bg-blue-50 rounded-xl p-4 px-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden">
                                   <div className="flex items-start gap-2 mb-3">
                                     <span className="text-xl flex-shrink-0">💡</span>
                                     <p className="text-[15px] text-slate-700 leading-relaxed font-medium break-words">
@@ -1829,8 +1830,8 @@ export default function Home() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-2xl transition-all duration-200">
-                                  <div className="prose prose-sm max-w-none">
+                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-2xl transition-all duration-200 min-w-0 overflow-hidden">
+                                  <div className="prose prose-sm max-w-none overflow-x-hidden">
                                     <ReactMarkdown
                                       components={{
                                         a: ({ ...props }) => (
@@ -2032,6 +2033,97 @@ export default function Home() {
               )}
               </div>
               <div ref={messagesEndRef} />
+              
+              {/* Mobile: Expandable recommendation boxes below chatbox */}
+              {topThreeRecommendations.length > 0 && (
+                <div className="lg:hidden mt-4 space-y-3 flex-shrink-0">
+                  {topThreeRecommendations.map((rec, index) => {
+                    const isExpanded = expandedRecommendations.has(index);
+                    return (
+                      <div
+                        key={index}
+                        className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden transition-all duration-200"
+                      >
+                        {/* Collapsed Header - Clickable */}
+                        <button
+                          onClick={() => {
+                            setExpandedRecommendations(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(index)) {
+                                newSet.delete(index);
+                              } else {
+                                newSet.add(index);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          className="w-full p-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Card Icon */}
+                            <div className="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                              <CreditCard className="w-5 h-5 text-teal-600" />
+                            </div>
+                            {/* Card Name */}
+                            <h4 className="font-semibold text-sm text-slate-900 text-left line-clamp-1 flex-1 min-w-0">
+                              {rec.credit_card_name}
+                            </h4>
+                          </div>
+                          {/* Chevron Icon */}
+                          <div className="flex-shrink-0 ml-2">
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-slate-500" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-slate-500" />
+                            )}
+                          </div>
+                        </button>
+                        
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div className="px-3 pb-3 pt-0 border-t border-slate-100">
+                            <div className="pt-3 space-y-2 text-sm">
+                              {/* Annual Fee */}
+                              {rec.annual_fee && (
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-medium text-slate-500">Annual Fee:</span>
+                                  <span className="text-slate-700 font-medium text-right">{rec.annual_fee}</span>
+                                </div>
+                              )}
+                              
+                              {/* Intro Offer */}
+                              {rec.intro_offer && (
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-medium text-slate-500">Intro Offer:</span>
+                                  <span className="text-slate-700 font-medium text-right">{rec.intro_offer}</span>
+                                </div>
+                              )}
+                              
+                              {/* Perks */}
+                              {rec.perks && (
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-medium text-slate-500">Perks:</span>
+                                  <span className="text-slate-700 font-medium text-right">{rec.perks}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Apply Button */}
+                            <a
+                              href={rec.apply_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-3 block w-full bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg text-sm font-semibold py-2.5 text-center hover:from-teal-700 hover:to-cyan-700 transition-all duration-200 active:scale-95"
+                            >
+                              Apply Now
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               
               {/* Mobile: Show cartoon at bottom of chat box on credit card background */}
               {currentCartoon && (
@@ -2320,63 +2412,6 @@ export default function Home() {
         </div>
         )}
 
-        {/* Mobile-only persistent bottom bar with recommended credit cards */}
-        {topThreeRecommendations.length > 0 && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-50 safe-area-inset-bottom">
-            <div className="px-3 py-2.5">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {topThreeRecommendations.map((rec, index) => (
-                  <a
-                    key={index}
-                    href={rec.apply_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 w-[calc(33.333%-0.5rem)] min-w-[140px] bg-white border border-slate-200 rounded-lg p-2.5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200 active:scale-95 flex flex-col"
-                  >
-                    {/* Card Name */}
-                    <h4 className="font-semibold text-xs text-slate-900 mb-1.5 leading-tight line-clamp-2">
-                      {rec.credit_card_name}
-                    </h4>
-                    
-                    {/* Fields */}
-                    <div className="space-y-1 text-[10px] text-slate-600 flex-grow">
-                      {/* Annual Fee */}
-                      {rec.annual_fee && (
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-slate-500">Fee:</span>
-                          <span className="text-slate-700 text-right font-medium line-clamp-1">{rec.annual_fee}</span>
-                        </div>
-                      )}
-                      
-                      {/* Intro Offer */}
-                      {rec.intro_offer && (
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-slate-500">Intro:</span>
-                          <span className="text-slate-700 text-right font-medium line-clamp-1">{rec.intro_offer}</span>
-                        </div>
-                      )}
-                      
-                      {/* Perks */}
-                      {rec.perks && (
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-slate-500">Perks:</span>
-                          <span className="text-slate-700 text-right font-medium line-clamp-1">{rec.perks}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Apply Button */}
-                    <div className="mt-2 pt-2 border-t border-slate-100">
-                      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded text-[10px] font-semibold py-1.5 text-center">
-                        Apply
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
