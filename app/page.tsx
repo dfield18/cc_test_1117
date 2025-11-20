@@ -72,7 +72,10 @@ export default function Home() {
   const [popularQuestionsCarouselIndex, setPopularQuestionsCarouselIndex] = useState(centerIndex);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+  const [isChatbotVisible, setIsChatbotVisible] = useState(true);
   const shownCartoonsRef = useRef<string[]>([]);
+  const chatbotContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -112,6 +115,54 @@ export default function Home() {
   useEffect(() => {
     shownCartoonsRef.current = shownCartoons;
   }, [shownCartoons]);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Track chatbot container visibility for mobile
+  useEffect(() => {
+    if (!isMobile) {
+      setIsChatbotVisible(true);
+      return;
+    }
+
+    // Wait for the element to be available
+    if (!chatbotContainerRef.current) {
+      // If messages exist but container isn't ready yet, set a timeout to check again
+      const timer = setTimeout(() => {
+        if (chatbotContainerRef.current) {
+          setIsChatbotVisible(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsChatbotVisible(entry.isIntersecting);
+        });
+      },
+      {
+        threshold: 0.05, // Trigger when 5% of the element is visible
+        rootMargin: '0px 0px -20% 0px', // Trigger when bottom 20% of viewport is reached
+      }
+    );
+
+    observer.observe(chatbotContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isMobile, messages]);
   
   // Track manual scrolling in left box
   useEffect(() => {
@@ -1436,9 +1487,9 @@ export default function Home() {
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"></div>
       </div>
       
-      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-20 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8'} ${messages.length > 0 ? 'pb-4 md:pb-6' : 'pb-6 md:pb-8'}`}>
+      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-6 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8'} ${messages.length > 0 ? 'pb-4 md:pb-6' : 'pb-6 md:pb-8'}`}>
         {/* Hero Section */}
-        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-4 md:py-6 mb-2' : 'py-2 md:py-4 mb-4'}`}>
+        <section className={`relative overflow-hidden ${messages.length > 0 ? 'py-2 md:py-6 mb-2 lg:mb-2' : 'py-2 md:py-4 mb-4'}`}>
           {/* Hero content */}
           <div className="relative z-10 max-w-3xl mx-auto text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 tracking-tight">
@@ -1494,9 +1545,9 @@ export default function Home() {
           </header>
         )}
 
-        {/* Fixed Mobile Input Box at Top - Only show on mobile after first question */}
-        {messages.some(msg => msg.role === 'user') && (
-          <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-md px-4 py-3">
+        {/* Fixed Mobile Input Box at Top - Only show on mobile when chatbot is not visible */}
+        {messages.some(msg => msg.role === 'user') && !isChatbotVisible && (
+          <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-md px-4 py-3">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <input
@@ -1700,11 +1751,11 @@ export default function Home() {
 
         {/* Two Column Layout - Only show when there are messages */}
         {messages.length > 0 && (
-        <div className={`grid gap-6 mb-6 mt-12 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 lg:grid-cols-5' : 'grid-cols-1 max-w-2xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
+        <div ref={chatbotContainerRef} className={`grid gap-6 mb-6 mt-12 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 lg:grid-cols-5' : 'grid-cols-1 max-w-xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
           {/* Left Column - Chatbot */}
           <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-2' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'h-[600px] lg:h-[700px]' : 'h-[500px]'}`} style={{ overflow: 'hidden' }}>
-            <div className={`bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200/60 h-full flex flex-col backdrop-blur-sm bg-gradient-to-br from-white to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden', overflowX: 'hidden' }}>
-              <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200 flex-shrink-0`}>
+            <div className={`lg:bg-white bg-transparent rounded-2xl lg:shadow-2xl lg:shadow-slate-300/40 border lg:border-slate-200/60 border-slate-200/30 h-full flex flex-col backdrop-blur-sm lg:bg-gradient-to-br lg:from-white lg:to-slate-50/50 ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden', overflowX: 'hidden' }}>
+              <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200/60 flex-shrink-0 hidden lg:block`}>
                 <h3 className={`${messages.some(msg => msg.role === 'user') ? 'text-xl' : 'text-lg'} font-semibold text-slate-900 mb-1`}>Your Questions</h3>
                 <p className="text-base text-muted-foreground">Ask me anything about credit cards</p>
               </div>
@@ -1752,9 +1803,18 @@ export default function Home() {
               <div className="lg:[direction:ltr] overflow-x-hidden min-w-0">
               {(
                 <>
-                  {messages
-                    .filter((msg) => msg.role === 'user')
-                    .map((message, index) => {
+                  {(() => {
+                    // On mobile, only show the most recent question/answer pair
+                    const userMessages = messages.filter((msg) => msg.role === 'user');
+                    const messagesToShow = isMobile && userMessages.length > 0 
+                      ? [userMessages[userMessages.length - 1]] 
+                      : userMessages;
+                    
+                    return messagesToShow.map((message, index) => {
+                      // Adjust index for mobile to always be the last message's index
+                      const displayIndex = isMobile && userMessages.length > 0 
+                        ? userMessages.length - 1 
+                        : index;
                       // Process markdown summary and ensure card links use correct URLs
                       const processMarkdownSummary = (summary: string, recommendations?: Recommendation[]) => {
                         if (!summary) return summary;
@@ -1783,9 +1843,9 @@ export default function Home() {
                       );
 
                       return (
-                        <div key={index} className="mb-6 max-w-2xl mx-auto overflow-x-hidden min-w-0" data-message-index={index}>
+                        <div key={displayIndex} className="mb-6 max-w-xl lg:mx-auto overflow-x-hidden min-w-0" data-message-index={displayIndex}>
                           {/* User Message */}
-                          <div className="flex items-start gap-3 mb-4">
+                          <div className="flex items-start gap-3 mb-4 flex-row-reverse lg:flex-row">
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-sm">
                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -1798,7 +1858,7 @@ export default function Home() {
                           
                           {/* Bot Response */}
                           {message.summary && (
-                            <div className={`flex items-start gap-3 ${isErrorMessage ? '' : 'mb-0'}`}>
+                            <div className={`flex items-start gap-3 flex-row-reverse lg:flex-row ${isErrorMessage ? '' : 'mb-0'}`}>
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
                                 <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -1830,7 +1890,7 @@ export default function Home() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-2xl transition-all duration-200 min-w-0 overflow-hidden">
+                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-xl transition-all duration-200 min-w-0 overflow-hidden">
                                   <div className="prose prose-sm max-w-none overflow-x-hidden">
                                     <ReactMarkdown
                                       components={{
@@ -1894,7 +1954,8 @@ export default function Home() {
                           )}
                         </div>
                       );
-                    })}
+                    });
+                  })()}
                   {isLoading && (() => {
                     // Check if the current question is about previous cards or a non-recommendation question
                     const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
@@ -1942,13 +2003,13 @@ export default function Home() {
                     return (
                       <>
                         {/* Mobile: Show SwipeToLoad only (cartoon moved to bottom of chat box) */}
-                        <div className="lg:hidden mb-6 max-w-2xl mx-auto">
+                        <div className="lg:hidden mb-6 max-w-xl lg:mx-auto">
                           <div className="flex flex-col items-center pt-0 pb-4">
                             <SwipeToLoad messages={useFunMessages ? FUN_LOADING_MESSAGES : undefined} />
                           </div>
                         </div>
                         {/* Desktop: Show simple thinking indicator */}
-                        <div className="hidden lg:flex items-start gap-3 mb-6 max-w-2xl mx-auto">
+                        <div className="hidden lg:flex items-start gap-3 mb-6 max-w-xl mx-auto">
                           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
                             <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -1969,9 +2030,38 @@ export default function Home() {
                     );
                   })()}
                   
-                  {/* Dynamic Suggested Questions - After most recent answer */}
+                  {/* Input Area - Desktop */}
+                  {!isLoading && (
+                    <div className="hidden lg:flex flex-col sm:flex-row gap-3 mt-6 mb-6 max-w-xl lg:mx-auto">
+                      <div className="flex items-start gap-3 w-full">
+                        {/* Spacer to match avatar width */}
+                        <div className="flex-shrink-0 w-8 h-8"></div>
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Ask about credit cards..."
+                            className="w-full min-h-[56px] h-10 py-7 lg:py-6 px-3 pr-16 lg:pr-24 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
+                          />
+                          <button
+                            onClick={handleSend}
+                            disabled={isLoading || !input.trim()}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] lg:min-w-[56px] lg:min-h-[56px] bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Dynamic Suggested Questions - After most recent answer - Desktop only */}
                   {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
-                    <div className="mt-6 pt-6 border-t border-slate-200">
+                    <div className="hidden lg:block mt-6 pt-6 border-t border-slate-200 max-w-sm lg:max-w-none">
                       <p className="text-xs md:text-sm text-slate-500 mb-4 font-semibold uppercase tracking-wide">You might also ask:</p>
                       {/* Carousel for both mobile and desktop */}
                       <div 
@@ -2036,7 +2126,7 @@ export default function Home() {
               
               {/* Mobile: Expandable recommendation boxes below chatbox */}
               {topThreeRecommendations.length > 0 && (
-                <div className="lg:hidden mt-4 space-y-3 flex-shrink-0">
+                <div className="lg:hidden mt-4 space-y-3 flex-shrink-0 max-w-sm">
                   {topThreeRecommendations.map((rec, index) => {
                     const isExpanded = expandedRecommendations.has(index);
                     return (
@@ -2124,11 +2214,71 @@ export default function Home() {
                   })}
                 </div>
               )}
+
+              {/* Mobile: Dynamic Suggested Questions - After recommendation cards */}
+              {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
+                <div className="lg:hidden border-t border-slate-200 max-w-sm" style={{ marginTop: '3rem', paddingTop: '1rem' }}>
+                  <p className="text-xs md:text-sm text-slate-500 mb-4 font-semibold uppercase tracking-wide">You might also ask:</p>
+                  {/* Carousel for mobile */}
+                  <div 
+                    ref={suggestionsCarouselRef}
+                    className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 px-4 -mx-4 bg-slate-50/50 rounded-lg py-3"
+                    style={{
+                      WebkitOverflowScrolling: 'touch',
+                      scrollBehavior: 'smooth',
+                      overscrollBehaviorX: 'contain'
+                    }}
+                  >
+                    {dynamicSuggestions.slice(0, 4).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestedQuestion(suggestion)}
+                        disabled={isLoading}
+                        className="bg-white rounded-xl p-2 border border-slate-200 hover:border-teal-300 hover:shadow-md hover:scale-105 transition-all duration-200 h-[160px] w-[200px] flex-shrink-0 snap-center flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                      >
+                        <div className="flex flex-col items-center text-center space-y-2 flex-1 justify-center">
+                          <div className="rounded-full bg-primary/10 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center">
+                            <span className="text-lg group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
+                          </div>
+                          <h3 className="font-semibold text-xs text-card-foreground leading-tight px-2">
+                            {suggestion}
+                          </h3>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Carousel Indicators */}
+                  {dynamicSuggestions.length > 0 && (
+                    <div className="flex justify-center gap-2 mt-4">
+                      {dynamicSuggestions.slice(0, 4).map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            if (suggestionsCarouselRef.current) {
+                              // Mobile card width is 200px
+                              const cardWidth = 200;
+                              const gap = 12; // gap-3 = 12px
+                              suggestionsCarouselRef.current.scrollTo({
+                                left: index * (cardWidth + gap),
+                                behavior: 'smooth'
+                              });
+                            }
+                          }}
+                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                            index === suggestionsCarouselIndex ? 'bg-primary w-6' : 'bg-slate-300'
+                          }`}
+                          aria-label={`Go to slide ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Mobile: Show cartoon at bottom of chat box on credit card background */}
               {currentCartoon && (
-                <div className="lg:hidden mt-4 mb-2 flex flex-col items-center flex-shrink-0">
-                  <div className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative" style={{
+                <div className="lg:hidden mb-6 flex flex-col items-center flex-shrink-0 max-w-sm" style={{ marginTop: '2.5rem' }}>
+                  <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative" style={{
                     aspectRatio: '1.586 / 1', // Standard credit card ratio
                     background: 'linear-gradient(135deg, #93c5fd 0%, #bfdbfe 50%, #dbeafe 100%)',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
@@ -2156,35 +2306,12 @@ export default function Home() {
                     
                     {/* Card number pattern (subtle) */}
                     <div className="absolute bottom-4 left-4 text-white/30 text-xs font-mono">
-                      •••• •••• •••• ••••
+                      •••• ••••
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            
-            {/* Input Area - Hidden on mobile after first question, visible on desktop */}
-            <div className={`hidden lg:flex flex-col sm:flex-row gap-3 mt-auto border-t border-slate-200 flex-shrink-0 ${messages.some(msg => msg.role === 'user') ? 'pt-4 md:pt-6' : 'pt-3 md:pt-4'}`}>
-                <div className="flex-1 relative lg:static">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask about credit cards..."
-                    className="w-full min-h-[56px] h-10 py-7 lg:py-6 px-3 pr-16 lg:pr-24 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
-                  />
-                </div>
-                <button
-                  onClick={handleSend}
-                  disabled={isLoading || !input.trim()}
-                  className="px-5 md:px-6 h-12 lg:py-3 lg:h-auto bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 text-base lg:text-sm flex items-center justify-center min-w-[56px] shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -2410,6 +2537,33 @@ export default function Home() {
           </div>
           )}
         </div>
+        )}
+
+        {/* Fixed Mobile Input Box at Bottom - Only show on mobile when chatbot is visible and there are messages */}
+        {messages.some(msg => msg.role === 'user') && isChatbotVisible && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-lg px-4 py-3">
+            <div className="flex flex-col sm:flex-row gap-3 max-w-sm mx-auto">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about credit cards..."
+                  className="w-full min-h-[56px] h-10 py-7 px-3 pr-16 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
 
