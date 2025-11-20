@@ -69,6 +69,7 @@ export default function Home() {
   const centerIndex = Math.floor(SUGGESTED_QUESTIONS.length / 2);
   const [carouselIndex, setCarouselIndex] = useState(centerIndex);
   const [suggestionsCarouselIndex, setSuggestionsCarouselIndex] = useState(0);
+  const [suggestionsCarouselScrollProgress, setSuggestionsCarouselScrollProgress] = useState(0);
   const [popularQuestionsCarouselIndex, setPopularQuestionsCarouselIndex] = useState(centerIndex);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(new Set());
@@ -261,8 +262,37 @@ export default function Home() {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
       const cardWidth = isMobile ? 200 : 280;
       const gap = 12; // gap-3 = 12px
-      const newIndex = Math.round(scrollLeft / (cardWidth + gap));
+      const cardSpacing = cardWidth + gap;
+      const newIndex = Math.round(scrollLeft / cardSpacing);
       setSuggestionsCarouselIndex(Math.min(newIndex, dynamicSuggestions.length - 1));
+      
+      // Calculate scroll progress for smooth bar movement (0 to 1)
+      const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+      let progress = 0;
+      
+      if (maxScroll > 0) {
+        progress = scrollLeft / maxScroll;
+        // Ensure progress reaches exactly 1.0 when scrolled all the way to the right
+        // Use a generous threshold (10px) to account for rounding, pixel snapping, touch scrolling, and browser differences
+        if (scrollLeft >= maxScroll - 10) {
+          progress = 1.0;
+        }
+        // Also check if we're at or past the absolute maximum
+        if (scrollLeft >= maxScroll) {
+          progress = 1.0;
+        }
+        // Additional check: if we're very close (within 1% of max), set to 1.0
+        if (maxScroll > 0 && scrollLeft / maxScroll >= 0.99) {
+          progress = 1.0;
+        }
+      } else if (scrollLeft > 0 || carousel.scrollLeft >= carousel.scrollWidth - carousel.clientWidth - 1) {
+        // If maxScroll is 0 or negative but we have scroll, or we're at the end, we're at the end
+        progress = 1.0;
+      }
+      
+      // Clamp and set progress - ensure it can reach 1.0
+      const finalProgress = Math.max(0, Math.min(progress, 1.0));
+      setSuggestionsCarouselScrollProgress(finalProgress);
     };
 
     carousel.addEventListener('scroll', handleScroll);
@@ -2248,8 +2278,50 @@ export default function Home() {
                     ))}
                   </div>
                   {/* Carousel Indicators */}
-                  {dynamicSuggestions.length > 0 && (
-                    <div className="flex justify-center gap-2 mt-4">
+                  {dynamicSuggestions.length > 0 && (() => {
+                    const totalDots = dynamicSuggestions.slice(0, 4).length;
+                    const dotWidth = 0.5; // w-2 = 0.5rem (inactive), w-6 = 1.5rem (active)
+                    const gap = 0.5; // gap-2 = 0.5rem
+                    const barWidth = 1.5; // width of sliding bar
+                    
+                    // Calculate positions based on actual dot layout
+                    // Dots are in flex container with gap-2 (0.5rem between elements)
+                    // Each dot button: w-2 (0.5rem) inactive, w-6 (1.5rem) active
+                    // 
+                    // For 4 dots with gap-2:
+                    //   Dot 0: left=0, right=0.5rem (inactive) or 1.5rem (active)
+                    //   Gap: 0.5rem
+                    //   Dot 1: left=1rem, right=1.5rem (inactive) or 2.5rem (active)
+                    //   Gap: 0.5rem
+                    //   Dot 2: left=2rem, right=2.5rem (inactive) or 3.5rem (active)
+                    //   Gap: 0.5rem
+                    //   Dot 3: left=3rem, right=3.5rem (inactive) or 4.5rem (active)
+                    //
+                    // Bar should move from 0 to align with rightmost dot's right edge (4.5rem when active)
+                    // Bar right edge at rightmost: 4.5rem, so bar left: 4.5rem - 1.5rem = 3rem
+                    const dotSpacing = dotWidth + gap; // 1rem between dot left edges
+                    const leftmostPosition = 0;
+                    const rightmostDotLeftEdge = (totalDots - 1) * dotSpacing; // 3rem for 4 dots
+                    const rightmostDotRightEdge = rightmostDotLeftEdge + 1.5; // 4.5rem (active)
+                    const rightmostPosition = rightmostDotRightEdge - barWidth; // 3rem
+                    
+                    // Map scroll progress (0-1) to bar position
+                    // Force progress to 1.0 when >= 0.85 to ensure bar reaches rightmost
+                    const progress = suggestionsCarouselScrollProgress >= 0.85 ? 1.0 : suggestionsCarouselScrollProgress;
+                    const barPosition = progress * rightmostPosition;
+                    
+                    return (
+                      <div className="flex justify-center gap-2 mt-4 relative" style={{ width: 'fit-content', margin: '1rem auto 0' }}>
+                        {/* Sliding indicator bar */}
+                        <div 
+                          className="absolute h-2 bg-primary rounded-full transition-all duration-75 ease-out"
+                          style={{
+                            width: '1.5rem',
+                            left: `${barPosition}rem`,
+                            top: '0',
+                            transform: 'translateY(0)'
+                          }}
+                        />
                       {dynamicSuggestions.slice(0, 4).map((_, index) => (
                         <button
                           key={index}
@@ -2264,14 +2336,15 @@ export default function Home() {
                               });
                             }
                           }}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                          className={`w-2 h-2 rounded-full transition-all duration-200 relative z-10 ${
                             index === suggestionsCarouselIndex ? 'bg-primary w-6' : 'bg-slate-300'
                           }`}
                           aria-label={`Go to slide ${index + 1}`}
                         />
                       ))}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               
