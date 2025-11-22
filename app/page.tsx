@@ -2142,7 +2142,7 @@ export default function Home() {
                 <span className="lg:hidden">Get personalized credit card recommendations powered by AI.</span>
                 <span className="hidden lg:block">
                   <span className="whitespace-nowrap block">Get personalized credit card recommendations powered by AI.</span>
-                  <span className="whitespace-nowrap block">Find the perfect card for your spending habits and financial goals.</span>
+                  <span className="whitespace-nowrap block">Choose the card that fits your life.</span>
                 </span>
               </p>
             )}
@@ -2457,17 +2457,17 @@ export default function Home() {
               <div className="flex items-center justify-center gap-16">
                 {/* Cards Analyzed */}
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">10,000+</div>
+                  <div className="text-3xl font-bold text-primary mb-2">300+</div>
                   <div className="text-base text-muted-foreground font-sans">Cards Analyzed</div>
                 </div>
                 
-                {/* Happy Users */}
+                {/* Verified Data Sources */}
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">50,000+</div>
-                  <div className="text-base text-muted-foreground font-sans">Happy Users</div>
+                  <div className="text-3xl font-bold text-primary mb-2">1,400+</div>
+                  <div className="text-base text-muted-foreground font-sans">Verified Data Sources</div>
                 </div>
                 
-                {/* AI-Powered */}
+                {/* AI-Powered Smart Recommendations */}
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">AI-Powered</div>
                   <div className="text-base text-muted-foreground font-sans">Smart Recommendations</div>
@@ -2509,12 +2509,13 @@ export default function Home() {
 
         {/* Two Column Layout - Only show when there are messages */}
         {messages.length > 0 && (
+        <div className={messages.some(msg => msg.role === 'user') ? 'lg:relative' : ''}>
         <div 
           ref={chatbotContainerRef} 
-          className={`grid gap-6 mb-6 mt-12 lg:mt-4 ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 desktop-grid-cols lg:-ml-12 lg:-mr-12' : 'grid-cols-1 max-w-xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}
+          className={`grid gap-6 mb-6 ${messages.some(msg => msg.role === 'user') ? 'mt-12 lg:mt-16 lg:mb-0' : 'mt-12 lg:mt-4'} ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 desktop-grid-cols lg:-ml-12 lg:-mr-12' : 'grid-cols-1 max-w-xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[700px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}
         >
           {/* Left Column - Chatbot */}
-          <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-1' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'min-h-[600px] lg:h-[700px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}>
+          <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-1 lg:relative' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'min-h-[600px] lg:h-[700px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}>
             <div className={`lg:bg-transparent bg-transparent rounded-2xl lg:shadow-none border lg:border-transparent border-slate-200/30 lg:h-full flex flex-col backdrop-blur-sm ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200/60 flex-shrink-0 hidden lg:block`}>
                 <h3 className={`${messages.some(msg => msg.role === 'user') ? 'text-xl' : 'text-lg'} font-semibold text-slate-900 mb-1`}>Your Questions</h3>
@@ -2819,77 +2820,6 @@ export default function Home() {
                     );
                   })()}
                   
-                  {/* Input Area - Desktop */}
-                  {!isLoading && (
-                    <div className="hidden lg:flex flex-col sm:flex-row gap-3 mt-6 mb-6 max-w-xl lg:max-w-lg lg:mx-auto">
-                      <div className="flex items-start gap-3 w-full">
-                        {/* Spacer to match avatar width */}
-                        <div className="flex-shrink-0 w-8 h-8"></div>
-                        <div className="flex-1 relative">
-                          <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            onFocus={(e) => {
-                              // Prevent scroll when input is focused on desktop
-                              if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-                                e.preventDefault();
-                                // Store current scroll position
-                                if (chatContainerRef.current) {
-                                  const currentScroll = chatContainerRef.current.scrollTop;
-                                  // Restore scroll position after a brief delay to prevent browser auto-scroll
-                                  setTimeout(() => {
-                                    if (chatContainerRef.current) {
-                                      chatContainerRef.current.scrollTop = currentScroll;
-                                    }
-                                  }, 0);
-                                }
-                              }
-                            }}
-                            placeholder="Ask about credit cards..."
-                            className="w-full min-h-[56px] h-10 py-7 lg:py-6 px-3 pr-16 lg:pr-24 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
-                          />
-                          <button
-                            onClick={handleSend}
-                            disabled={isLoading || !input.trim()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] lg:min-w-[56px] lg:min-h-[56px] bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Dynamic Suggested Questions - After most recent answer - Desktop only */}
-                  {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
-                    <div className="hidden lg:block mt-6 pt-6 border-t border-slate-200 max-w-sm lg:max-w-none">
-                      <p className="text-xs md:text-sm text-slate-500 mb-4 font-semibold uppercase tracking-wide">You might also ask:</p>
-                      {/* Fixed three boxes grid for desktop */}
-                      <div className="grid grid-cols-3 gap-3">
-                        {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleSuggestedQuestion(suggestion)}
-                            disabled={isLoading}
-                            className="bg-white rounded-xl p-2 border border-slate-200 hover:border-teal-300 hover:shadow-md hover:scale-105 transition-all duration-200 h-[160px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                          >
-                            <div className="flex flex-col items-center text-center space-y-2 flex-1 justify-center">
-                              <div className="rounded-full bg-primary/10 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center">
-                                <span className="text-lg group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
-                              </div>
-                              <h3 className="font-semibold text-xs text-card-foreground leading-tight px-2">
-                                {suggestion}
-                              </h3>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
               </div>
@@ -3403,6 +3333,68 @@ export default function Home() {
             </div>
           </div>
           )}
+        </div>
+        
+        {/* Desktop Input and Recommendations - Below container on left side, after first question */}
+        {messages.some(msg => msg.role === 'user') && (
+          <div className="hidden lg:block lg:absolute lg:bottom-0 lg:-ml-12 lg:px-6 lg:z-20 lg:bg-white lg:pt-4 lg:pb-4" style={{ width: '32%' }}>
+            {/* Input Area - Desktop */}
+            {!isLoading && (
+              <div className="flex flex-col gap-3 mb-6 max-w-lg">
+                <div className="flex items-start gap-3 w-full">
+                  {/* Spacer to match avatar width */}
+                  <div className="flex-shrink-0 w-8 h-8"></div>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask about credit cards..."
+                      className="w-full min-h-[56px] h-10 py-7 lg:py-6 px-3 pr-16 lg:pr-24 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
+                    />
+                    <button
+                      onClick={handleSend}
+                      disabled={isLoading || !input.trim()}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] lg:min-w-[56px] lg:min-h-[56px] bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Dynamic Suggested Questions - Desktop only */}
+            {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <p className="text-xs md:text-sm text-slate-500 mb-4 font-semibold uppercase tracking-wide">You might also ask:</p>
+                {/* Fixed three boxes grid for desktop */}
+                <div className="grid grid-cols-3 gap-3">
+                  {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestedQuestion(suggestion)}
+                      disabled={isLoading}
+                      className="bg-white rounded-xl p-2 border border-slate-200 hover:border-teal-300 hover:shadow-md hover:scale-105 transition-all duration-200 h-[160px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                    >
+                      <div className="flex flex-col items-center text-center space-y-2 flex-1 justify-center">
+                        <div className="rounded-full bg-primary/10 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center">
+                          <span className="text-lg group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
+                        </div>
+                        <h3 className="font-semibold text-xs text-card-foreground leading-tight px-2">
+                          {suggestion}
+                        </h3>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         </div>
         )}
 
