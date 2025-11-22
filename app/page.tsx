@@ -2080,7 +2080,7 @@ export default function Home() {
       <style dangerouslySetInnerHTML={{__html: `
         @media (min-width: 1024px) {
           .desktop-grid-cols {
-            grid-template-columns: 45% 55% !important;
+            grid-template-columns: 47% 53% !important;
           }
         }
       `}} />
@@ -2523,8 +2523,8 @@ export default function Home() {
           <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-1 lg:relative' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'min-h-[600px] lg:h-[900px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}>
             <div className={`lg:bg-transparent bg-transparent rounded-2xl lg:shadow-none border lg:border-transparent border-slate-200/30 lg:h-full flex flex-col backdrop-blur-sm ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200/60 flex-shrink-0 hidden lg:block`}>
-                <h3 className="text-xl lg:text-2xl font-bold text-slate-900 mb-1">Your Questions</h3>
-                <p className="text-xs lg:text-sm text-slate-500 font-light">Ask me anything about credit cards</p>
+                <h3 className="text-xl lg:text-2xl font-bold text-slate-900 mb-1.5">Your Questions</h3>
+                <p className="text-sm text-slate-500 font-normal">Ask me anything about credit cards</p>
               </div>
               <div 
                 ref={(el) => {
@@ -2591,13 +2591,13 @@ export default function Home() {
                       overflowY: 'auto',
                       touchAction: 'pan-y',
                       direction: 'rtl',
-                      paddingBottom: '6rem',
+                      paddingBottom: '0.5rem',
                       marginBottom: '0'
                     })
                   : (isMobile ? {} : { overflow: 'hidden', scrollbarWidth: 'none' })
                 }
               >
-              <div className="lg:[direction:ltr] overflow-x-hidden overflow-y-hidden min-w-0" style={messages.some(msg => msg.role === 'user') && !isMobile ? { paddingBottom: '4rem' } : {}}>
+              <div className="lg:[direction:ltr] overflow-x-hidden overflow-y-hidden min-w-0" style={messages.some(msg => msg.role === 'user') && !isMobile ? { paddingBottom: '2rem' } : {}}>
               {(
                 <>
                   {(() => {
@@ -2640,15 +2640,15 @@ export default function Home() {
                       );
 
                       return (
-                        <div key={displayIndex} className="mb-6 max-w-xl lg:max-w-lg lg:mx-auto overflow-x-hidden min-w-0" data-message-index={displayIndex}>
+                        <div key={displayIndex} className="mb-8 max-w-xl lg:max-w-xl lg:mx-auto overflow-x-hidden min-w-0" data-message-index={displayIndex}>
                           {/* User Message */}
-                          <div className="flex items-start gap-3 mb-4 flex-row-reverse lg:flex-row">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-sm">
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-start gap-3 mb-5 flex-row-reverse lg:flex-row">
+                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-md ring-2 ring-teal-100">
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                             </div>
-                            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl p-4 px-5 shadow-sm flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl p-4 px-5 shadow-md flex-1 transition-all duration-200 min-w-0 overflow-hidden max-w-[72.25%]">
                               <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
                             </div>
                           </div>
@@ -2656,15 +2656,15 @@ export default function Home() {
                           {/* Bot Response */}
                           {message.summary && (
                             <div className={`flex items-start gap-3 flex-row-reverse lg:flex-row ${isErrorMessage ? '' : 'mb-0'}`}>
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
-                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shadow-sm ring-1 ring-slate-200">
+                                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
                               </div>
                               {isErrorMessage ? (
-                                <div className="flex-1 bg-blue-50 rounded-xl p-4 px-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden">
-                                  <div className="flex items-start gap-2 mb-3">
-                                    <span className="text-xl flex-shrink-0">💡</span>
+                                <div className="flex-1 bg-blue-50 rounded-2xl p-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden max-w-[72.25%]">
+                                  <div className="flex items-start gap-3 mb-4">
+                                    <span className="text-2xl flex-shrink-0">💡</span>
                                     <p className="text-[15px] text-slate-700 leading-relaxed font-medium break-words">
                                       Let me help you find the right card. Try asking about specific features like:
                                     </p>
@@ -2679,7 +2679,7 @@ export default function Home() {
                                         key={idx}
                                         onClick={() => handleSuggestedQuestion(suggestion)}
                                         disabled={isLoading}
-                                        className="border border-teal-600 text-teal-600 rounded-full px-4 py-3 h-12 md:h-auto text-base md:text-sm font-medium hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="border border-teal-600 text-teal-600 rounded-full px-4 py-2.5 text-sm font-medium hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
                                         {suggestion}
                                       </button>
@@ -2687,7 +2687,7 @@ export default function Home() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm flex-1 max-w-xl lg:max-w-lg transition-all duration-200 min-w-0 overflow-hidden">
+                                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 flex-1 max-w-xl lg:max-w-[24.48rem] transition-all duration-200 min-w-0 overflow-hidden">
                                   <div className="prose prose-sm max-w-none overflow-x-hidden">
                                     <ReactMarkdown
                                       components={{
@@ -2709,13 +2709,13 @@ export default function Home() {
                                           <h3 className="text-base font-semibold text-slate-900 mt-3 mb-2" {...props} />
                                         ),
                                         p: ({ ...props }) => (
-                                          <p className="mb-3 text-[15px] leading-[1.6] text-slate-700 break-words" {...props} />
+                                          <p className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
                                         ),
                                         ul: ({ ...props }) => (
-                                          <ul className="list-none space-y-3 my-3" {...props} />
+                                          <ul className="list-none space-y-2.5 my-3" {...props} />
                                         ),
                                         li: ({ ...props }) => (
-                                          <li className="mb-4 text-[15px] leading-[1.6] text-slate-700 break-words" {...props} />
+                                          <li className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
                                         ),
                                       }}
                                     >
@@ -2806,19 +2806,19 @@ export default function Home() {
                           </div>
                         </div>
                         {/* Desktop: Show simple thinking indicator */}
-                        <div className="hidden lg:flex items-start gap-3 mb-6 max-w-xl lg:max-w-lg mx-auto">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shadow-sm">
-                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="hidden lg:flex items-start gap-3 mb-8 max-w-xl lg:max-w-xl mx-auto">
+                          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shadow-sm ring-1 ring-slate-200">
+                            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-4 px-5 shadow-sm">
-                            <div className="flex items-center gap-1">
+                          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 max-w-[30.6rem]">
+                            <div className="flex items-center gap-2">
                               <span className="text-slate-600 text-[15px] font-medium">Thinking</span>
-                              <div className="flex gap-1 ml-2">
-                                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                              <div className="flex gap-1.5">
+                                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                               </div>
                             </div>
                           </div>
@@ -2831,6 +2831,43 @@ export default function Home() {
               )}
               </div>
               <div ref={messagesEndRef} />
+              
+              {/* Desktop: Dynamic Suggested Questions - Inside scrollable messages area */}
+              {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
+                <div className="hidden lg:block -mt-8 pt-0 max-w-xl lg:max-w-xl">
+                  <p className="text-xs text-slate-500 mb-1.5 font-semibold uppercase tracking-wider text-left">You might also ask</p>
+                  {/* Fixed three boxes grid for desktop */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestedQuestion(suggestion)}
+                        disabled={isLoading}
+                        className="bg-white rounded-xl p-3 border border-slate-200 hover:border-teal-400 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 min-h-[140px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                      >
+                        <div className="flex flex-col items-center text-center space-y-2.5 flex-1 justify-center">
+                          <div className="rounded-full bg-teal-50 p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center group-hover:bg-teal-100 transition-colors">
+                            <span className="text-xl group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
+                          </div>
+                          <h3 className="font-medium text-xs text-slate-700 leading-snug px-1.5 line-clamp-3">
+                            {(() => {
+                              // Fix question mark positioning: move question marks from before words to the end
+                              let fixed = suggestion;
+                              // Remove question marks that appear before word characters
+                              fixed = fixed.replace(/\?(\w)/g, '$1');
+                              // Add question mark at the end if the text doesn't already end with punctuation
+                              if (!fixed.match(/[?.!]$/)) {
+                                fixed = fixed + '?';
+                              }
+                              return fixed;
+                            })()}
+                          </h3>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {/* Mobile: Expandable recommendation boxes below chatbox */}
               {topThreeRecommendations.length > 0 && (
@@ -3074,12 +3111,46 @@ export default function Home() {
                 </div>
               )}
             </div>
+            
+            {/* Desktop Input and Suggested Questions - Persistent at bottom of left column */}
+            {messages.some(msg => msg.role === 'user') && (
+              <div className="hidden lg:block lg:sticky lg:bottom-0 flex-shrink-0 pt-6 bg-transparent -mx-8 -mb-8 px-8 pb-8 z-10">
+                {/* Input Area - Desktop */}
+                {!isLoading && (
+                  <div className="flex flex-col gap-4 mb-5">
+                    <div className="flex items-start gap-3 w-full">
+                      {/* Spacer to match avatar width */}
+                      <div className="flex-shrink-0 w-9 h-9"></div>
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          placeholder="Ask about credit cards..."
+                          className="w-full min-h-[56px] h-12 py-3 px-4 pr-14 text-[15px] border border-slate-300 rounded-xl shadow-sm bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200"
+                        />
+                        <button
+                          onClick={handleSend}
+                          disabled={isLoading || !input.trim()}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           </div>
 
           {/* Right Column - Credit Card Recommendations - Only show after a question is asked */}
           {messages.some(msg => msg.role === 'user') && (
-          <div className="hidden lg:flex lg:col-span-1 flex-col h-[500px] lg:h-[900px]" style={{ overflow: 'hidden', marginLeft: '5%' }}>
+          <div className="hidden lg:flex lg:col-span-1 flex-col h-[500px] lg:h-[900px]" style={{ overflow: 'hidden' }}>
             <div className="lg:bg-transparent bg-white rounded-2xl lg:shadow-none lg:border-transparent shadow-2xl shadow-slate-300/40 border border-slate-200/60 p-4 lg:p-8 h-full flex flex-col backdrop-blur-sm" style={{ maxHeight: '100%', overflow: 'hidden' }}>
               <div className="hidden lg:flex items-center gap-3 mb-6 lg:mb-8 flex-shrink-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
@@ -3093,7 +3164,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto min-h-0 max-h-full scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex-1 overflow-y-auto min-h-0 max-h-full scrollbar-thin pt-12" style={{ scrollbarWidth: 'thin' }}>
                 {(() => {
                   // Find only the most recent assistant message with recommendations
                   const mostRecentAssistantMessage = [...messages]
@@ -3200,7 +3271,7 @@ export default function Home() {
 
                   return (
                     <>
-                      <div className="flex flex-col gap-4 mb-6">
+                      <div className="flex flex-col gap-4 mb-6 max-w-[80%] mx-auto">
                         {mostRecentAssistantMessage.recommendations.slice(0, 3).map((rec, recIndex) => {
                           // Extract issuer from card name (usually first word)
                           const cardNameParts = rec.credit_card_name.split(' ');
@@ -3365,67 +3436,6 @@ export default function Home() {
           </div>
           )}
         </div>
-        
-        {/* Desktop Input and Recommendations - Below container on left side, after first question */}
-        {messages.some(msg => msg.role === 'user') && (
-          <div className="hidden lg:block lg:absolute lg:bottom-0 lg:-ml-12 lg:px-6 lg:z-20 lg:bg-white lg:pt-4 lg:pb-4" style={{ width: '45%' }}>
-            {/* Input Area - Desktop */}
-            {!isLoading && (
-              <div className="flex flex-col gap-3 mb-6 max-w-lg">
-                <div className="flex items-start gap-3 w-full">
-                  {/* Spacer to match avatar width */}
-                  <div className="flex-shrink-0 w-8 h-8"></div>
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask about credit cards..."
-                      className="w-full min-h-[56px] h-10 py-7 lg:py-6 px-3 pr-16 lg:pr-24 text-base border border-input rounded-md shadow-card bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
-                    />
-                    <button
-                      onClick={handleSend}
-                      disabled={isLoading || !input.trim()}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] lg:min-w-[56px] lg:min-h-[56px] bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Dynamic Suggested Questions - Desktop only */}
-            {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                <p className="text-xs md:text-sm text-slate-500 mb-2 font-semibold uppercase tracking-wide">You might also ask:</p>
-                {/* Fixed three boxes grid for desktop */}
-                <div className="grid grid-cols-3 gap-2">
-                  {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestedQuestion(suggestion)}
-                      disabled={isLoading}
-                      className="bg-white rounded-xl p-1.5 border border-slate-200 hover:border-teal-300 hover:shadow-md hover:scale-105 transition-all duration-200 h-[110px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                    >
-                      <div className="flex flex-col items-center text-center space-y-1.5 flex-1 justify-center">
-                        <div className="rounded-full bg-primary/10 p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center">
-                          <span className="text-base group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
-                        </div>
-                        <h3 className="font-semibold text-xs text-card-foreground leading-tight px-1">
-                          {suggestion}
-                        </h3>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
         </div>
         )}
 
