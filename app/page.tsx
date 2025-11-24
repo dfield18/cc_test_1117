@@ -5,7 +5,7 @@ import { Recommendation } from '@/types';
 import SwipeToLoad from '@/components/SwipeToLoad';
 import CartoonDisplay from '@/components/CartoonDisplay';
 import ReactMarkdown from 'react-markdown';
-import { Plane, ShoppingCart, Shield, User, Sparkles, CreditCard, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Check, Star, ExternalLink, TrendingUp } from 'lucide-react';
+import { Plane, ShoppingCart, Shield, User, Sparkles, CreditCard, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Check, Star, ExternalLink, TrendingUp, Send } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -82,6 +82,7 @@ export default function Home() {
   
   // State for collapsible credit card boxes (all closed by default)
   const [openCardBoxes, setOpenCardBoxes] = useState<Set<number>>(new Set([]));
+  const [desktopExpandedRecommendations, setDesktopExpandedRecommendations] = useState<Set<number>>(new Set());
   
   // Questions to show in carousel (6 on desktop, all on mobile)
   const carouselQuestions = useMemo(() => {
@@ -89,6 +90,7 @@ export default function Home() {
   }, [isDesktop]);
   const shownCartoonsRef = useRef<string[]>([]);
   const chatbotContainerRef = useRef<HTMLDivElement>(null);
+  const desktopChatbotRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -115,15 +117,151 @@ export default function Home() {
   // Track previous user message count to detect new questions
   const prevUserMessageCountRef = useRef(0);
   
-  // Get the most recent recommendations for mobile bottom bar
-  const topThreeRecommendations = useMemo(() => {
-    const mostRecentAssistantMessage = [...messages]
+  const latestAssistantMessage = useMemo(() => {
+    return [...messages]
       .reverse()
       .find((msg) => msg.role === 'assistant' && msg.recommendations && msg.recommendations.length > 0);
-    
-    const recommendations = mostRecentAssistantMessage?.recommendations || [];
-    return recommendations.slice(0, 3);
   }, [messages]);
+
+  // Get the most recent recommendations for mobile bottom bar
+  const topThreeRecommendations = useMemo(() => {
+    const recommendations = latestAssistantMessage?.recommendations || [];
+    return recommendations.slice(0, 3);
+  }, [latestAssistantMessage]);
+
+  const userConversationMessages = useMemo(
+    () => messages.filter((msg) => msg.role === 'user'),
+    [messages]
+  );
+  const lastUserMessage = userConversationMessages[userConversationMessages.length - 1];
+  const hasAskedQuestion = userConversationMessages.length > 0;
+  const latestRecommendations = latestAssistantMessage?.recommendations || [];
+
+  const getRecommendationHighlight = (rec: Recommendation) => {
+    const highlight =
+      rec.reason ||
+      rec.perks ||
+      rec.rewards_rate ||
+      'Premium rewards without the hassle.';
+    return highlight.length > 110 ? `${highlight.slice(0, 107)}...` : highlight;
+  };
+
+  const getDerivedRating = (index: number) => {
+    const baseRatings = [4.8, 4.6, 4.5];
+    const rating = baseRatings[index] ?? Math.max(4.2, 4.5 - index * 0.1);
+    return rating.toFixed(1);
+  };
+
+  const recentConversationSummary = useMemo(() => {
+    const plainSummary = latestAssistantMessage?.summary
+      ?.replace(/!\[.*?\]\(.*?\)/g, '')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/[*_`#>-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!plainSummary) return '';
+
+    const extractedSentences = plainSummary.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const sentences: string[] = extractedSentences.slice(0, Math.min(4, extractedSentences.length));
+
+    if (sentences.length === 0) {
+      sentences.push(plainSummary);
+    }
+
+    if (sentences.length < 2 && latestRecommendations.length > 0) {
+      const cardNames = latestRecommendations.slice(0, 3).map((rec) => rec.credit_card_name);
+      const cardsSentence =
+        cardNames.length === 1
+          ? `${cardNames[0]} is the featured recommendation.`
+          : `Featured cards include ${cardNames.slice(0, -1).join(', ')} and ${cardNames.slice(-1)}.`;
+      sentences.push(cardsSentence);
+    }
+
+    return sentences.slice(0, 4).join(' ');
+  }, [latestAssistantMessage, latestRecommendations]);
+
+  const recommendedSectionSummary = useMemo(() => {
+    if (!lastUserMessage || latestRecommendations.length === 0) return null;
+
+    const questionFocus = lastUserMessage.content.trim().replace(/\s+/g, ' ');
+    const cards = latestRecommendations.slice(0, 3);
+    const highlight = (rec: Recommendation) => getRecommendationHighlight(rec).toLowerCase();
+    const link = (rec: Recommendation) => (
+      <a
+        href={rec.apply_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-semibold underline decoration-2 decoration-primary/30 hover:decoration-primary"
+      >
+        {rec.credit_card_name}
+      </a>
+    );
+
+    if (cards.length === 1) {
+      return (
+        <>
+          For your question about {questionFocus}, {link(cards[0])} stands out for {highlight(cards[0])}.
+        </>
+      );
+    }
+
+    if (cards.length === 2) {
+      return (
+        <>
+          To address your question about {questionFocus}, consider {link(cards[0])} for {highlight(cards[0])}, while{' '}
+          {link(cards[1])} shines for {highlight(cards[1])}.
+        </>
+      );
+    }
+
+    return (
+      <>
+        Based on your question about {questionFocus}, {link(cards[0])} offers {highlight(cards[0])}, {link(cards[1])} excels at{' '}
+        {highlight(cards[1])}, and {link(cards[2])} rounds things out with {highlight(cards[2])}.
+      </>
+    );
+  }, [lastUserMessage, latestRecommendations]);
+
+  const extractBenefits = (rec: Recommendation) => {
+    const benefits: string[] = [];
+
+    if (rec.rewards_rate && !rec.rewards_rate.toLowerCase().includes('apr')) {
+      benefits.push(rec.rewards_rate);
+    }
+
+    if (rec.perks) {
+      const perkList = rec.perks
+        .split(/[.,;]/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 10 && p.length < 100);
+      benefits.push(...perkList);
+    }
+
+    if (rec.reason && benefits.length < 4) {
+      const reasonBenefits = rec.reason
+        .split(/[.,;]/)
+        .map((r) => r.trim())
+        .filter((r) => {
+          const lower = r.toLowerCase();
+          return (
+            r.length > 15 &&
+            r.length < 100 &&
+            !lower.includes('annual fee') &&
+            !lower.includes('credit score') &&
+            (lower.includes('points') ||
+              lower.includes('cash back') ||
+              lower.includes('rewards') ||
+              lower.includes('travel') ||
+              lower.includes('perk') ||
+              lower.includes('benefit'))
+          );
+        });
+      benefits.push(...reasonBenefits);
+    }
+
+    return benefits.slice(0, 4);
+  };
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -1368,6 +1506,51 @@ export default function Home() {
     }
   }, [messages]);
 
+  // Scroll desktop chatbot to show most recent question at top
+  useEffect(() => {
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    if (!isDesktop || !desktopChatbotRef.current || !hasAskedQuestion) return;
+    
+    const userMessages = messages.filter((msg) => msg.role === 'user');
+    const currentUserMessageCount = userMessages.length;
+    const isNewQuestion = currentUserMessageCount > prevUserMessageCountRef.current;
+    
+    if (isNewQuestion && desktopChatbotRef.current) {
+      // Wait for DOM to update
+      setTimeout(() => {
+        if (!desktopChatbotRef.current) return;
+        
+        const container = desktopChatbotRef.current;
+        // Get the inner LTR div
+        const innerDiv = container.querySelector('div[style*="direction: ltr"]') as HTMLElement;
+        if (!innerDiv) return;
+        
+        const messageElements = innerDiv.querySelectorAll('[data-message-index]');
+        
+        if (messageElements.length > 0) {
+          // Get the most recent message (last in the list)
+          const lastMessageElement = messageElements[messageElements.length - 1] as HTMLElement;
+          
+          if (lastMessageElement) {
+            // Calculate position relative to the scrollable container
+            const containerTop = container.getBoundingClientRect().top;
+            const elementTop = lastMessageElement.getBoundingClientRect().top;
+            const elementTopRelativeToContainer = elementTop - containerTop;
+            const currentScrollTop = container.scrollTop;
+            
+            // Scroll to position the most recent question at the top (with small padding)
+            const targetScrollTop = currentScrollTop + elementTopRelativeToContainer - 20;
+            
+            container.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
+            });
+          }
+        }
+      }, 150);
+    }
+  }, [messages, hasAskedQuestion]);
+
   useEffect(() => {
     // Scroll the left box - show most recent question (both mobile and desktop)
     // Only auto-scroll if user hasn't manually scrolled and input is not focused
@@ -2076,12 +2259,10 @@ export default function Home() {
 
   return (
     <div className="relative overflow-hidden min-h-screen bg-background">
-      {/* Custom grid styles for desktop */}
+      {/* Custom styles for desktop */}
       <style dangerouslySetInnerHTML={{__html: `
         @media (min-width: 1024px) {
-          .desktop-grid-cols {
-            grid-template-columns: 47% 53% !important;
-          }
+          /* Desktop layout is now vertical stack */
         }
       `}} />
       {/* Animated gradient overlay */}
@@ -2094,8 +2275,9 @@ export default function Home() {
         {/* Second orb */}
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"></div>
       </div>
+
       
-      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-6 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8 lg:pt-4'} ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pb-24 lg:pb-4 md:pb-6' : 'pb-4 md:pb-6') : 'pb-6 md:pb-8'}`}>
+      <div className={`container mx-auto px-4 lg:px-6 max-w-7xl relative z-10 ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pt-6 lg:pt-4 md:pt-6' : 'pt-4 md:pt-6') : 'pt-6 md:pt-8 lg:pt-4'} ${messages.length > 0 ? (messages.some(msg => msg.role === 'user') ? 'pb-24 lg:pb-28 md:pb-6' : 'pb-4 md:pb-6') : 'pb-6 md:pb-8'}`}>
         {/* Feature boxes at top - Desktop only */}
         {messages.length > 0 && (
           <div className="hidden lg:flex justify-center gap-3 mb-4 pt-2">
@@ -2512,16 +2694,358 @@ export default function Home() {
           </div>
         )}
 
-        {/* Two Column Layout - Only show when there are messages */}
+        {/* Desktop redesign after first question */}
+        {hasAskedQuestion && (
+          <section className="hidden lg:block mt-8 mb-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* Hero Input Card */}
+              <div className="relative bg-background/80 backdrop-blur-sm border border-slate-200/40 rounded-3xl shadow-lg shadow-slate-200/20 px-14 py-12 overflow-hidden">
+                {/* Decorative gradient overlay */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-accent/5 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+                
+                <div className="relative">
+                  {/* Chatbot Conversation with Cartoon */}
+                  <div className="flex items-start gap-8">
+                    {/* Chatbot Conversation */}
+                    <div className="flex-1 max-w-2xl">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-slate-900">Conversation History</h3>
+                          <p className="text-sm text-slate-500 mt-1">Your chats with the AI, all right where you left them.</p>
+                        </div>
+                      </div>
+                    <div 
+                      ref={desktopChatbotRef} 
+                      className="max-h-[600px] overflow-y-auto scrollbar-thin pr-2"
+                      style={{ 
+                        scrollbarWidth: 'thin', 
+                        overflowX: 'hidden', 
+                        overflowY: 'auto',
+                        direction: 'rtl',
+                        paddingBottom: '1rem'
+                      }}
+                    >
+                      <div style={{ direction: 'ltr' }}>
+                        {(() => {
+                          const userMessages = messages.filter((msg) => msg.role === 'user');
+                          return userMessages.map((message, index) => {
+                            const displayIndex = index;
+                            const processMarkdownSummary = (summary: string, recommendations?: Recommendation[]) => {
+                              if (!summary) return summary;
+                              if (recommendations && recommendations.length > 0) {
+                                let processedSummary = summary;
+                                recommendations.forEach((rec) => {
+                                  const cardName = rec.credit_card_name;
+                                  const markdownLinkRegex = new RegExp(`\\[${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]\\([^)]+\\)`, 'gi');
+                                  processedSummary = processedSummary.replace(
+                                    markdownLinkRegex,
+                                    `[${cardName}](${rec.apply_url})`
+                                  );
+                                });
+                                return processedSummary;
+                              }
+                              return summary;
+                            };
+
+                            const isErrorMessage = message.summary && (
+                              message.summary.toLowerCase().includes("i couldn't find") ||
+                              message.summary.toLowerCase().includes("couldn't find any credit cards")
+                            );
+
+                            return (
+                              <div key={displayIndex} className="mb-8" data-message-index={displayIndex}>
+                                {/* User Message */}
+                                <div className="flex items-start gap-3 mb-5">
+                                  <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-md ring-2 ring-teal-100">
+                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                  </div>
+                                  <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl p-4 px-5 shadow-md flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                                    <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
+                                  </div>
+                                </div>
+                                
+                                {/* Bot Response */}
+                                {message.summary && (
+                                  <div className={`flex items-start gap-3 ${isErrorMessage ? '' : 'mb-0'}`}>
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shadow-sm ring-1 ring-slate-200">
+                                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                      </svg>
+                                    </div>
+                                    {isErrorMessage ? (
+                                      <div className="flex-1 bg-blue-50 rounded-2xl p-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden">
+                                        <div className="flex items-start gap-3 mb-4">
+                                          <span className="text-2xl flex-shrink-0">💡</span>
+                                          <p className="text-[15px] text-slate-700 leading-relaxed font-medium break-words">
+                                            Let me help you find the right card. Try asking about specific features like:
+                                          </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-4">
+                                          {[
+                                            "Cards with no annual fee",
+                                            "Best cash back rewards",
+                                            "Travel cards under $100/year"
+                                          ].map((suggestion, idx) => (
+                                            <button
+                                              key={idx}
+                                              onClick={() => handleSuggestedQuestion(suggestion)}
+                                              disabled={isLoading}
+                                              className="border border-teal-600 text-teal-600 rounded-full px-4 py-2.5 text-sm font-medium hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                              {suggestion}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                                        <div className="prose prose-sm max-w-none overflow-x-hidden">
+                                          <ReactMarkdown
+                                            components={{
+                                              a: ({ ...props }) => (
+                                                <a 
+                                                  {...props} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  className="text-teal-600 font-semibold hover:text-teal-700 underline decoration-2 decoration-teal-300 hover:decoration-teal-500 transition-colors duration-200"
+                                                />
+                                              ),
+                                              p: ({ ...props }) => (
+                                                <p className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
+                                              ),
+                                              ul: ({ ...props }) => (
+                                                <ul className="list-none space-y-2.5 my-3" {...props} />
+                                              ),
+                                              li: ({ ...props }) => (
+                                                <li className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
+                                              ),
+                                            }}
+                                          >
+                                            {(() => {
+                                              let displayText = message.recommendations && message.recommendations.length > 0
+                                                ? processMarkdownSummary(message.summary, message.recommendations)
+                                                : message.summary;
+                                              
+                                              if (message.recommendations && message.recommendations.length > 0) {
+                                                const summaryLower = displayText.toLowerCase();
+                                                const missingCards = message.recommendations.filter(rec => {
+                                                  const cardNameLower = rec.credit_card_name.toLowerCase();
+                                                  return !summaryLower.includes(cardNameLower);
+                                                });
+                                                
+                                                if (missingCards.length > 0) {
+                                                  const cardsText = missingCards.map(rec => 
+                                                    `- **[${rec.credit_card_name}](${rec.apply_url})** - ${rec.reason}`
+                                                  ).join('\n\n');
+                                                  displayText = displayText + '\n\n' + cardsText;
+                                                }
+                                              }
+                                              
+                                              return displayText;
+                                            })()}
+                                          </ReactMarkdown>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          });
+                        })()}
+                        {isLoading && (
+                          <div className="mb-8">
+                            <SwipeToLoad />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    </div>
+
+                    {/* Cartoon to the right of chatbot - Desktop only */}
+                    {currentCartoon && (
+                      <div className="hidden lg:block flex-shrink-0 w-80">
+                        <div className="sticky top-4 h-[600px] flex items-center justify-center p-4">
+                          <img
+                            src={currentCartoon.imageUrl}
+                            alt="Cartoon"
+                            className="max-w-full max-h-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recommended Cards Section - Directly below Conversation History */}
+                  <div className="mt-2 pt-2 border-t border-slate-200/60 max-w-2xl">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-slate-900">Recommended Cards</h3>
+                        <p className="text-sm text-slate-500 mt-1">Premium suggestions tailored to your needs</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {latestRecommendations.length > 0 ? (
+                        latestRecommendations.slice(0, 3).map((rec, index) => {
+                          const isExpanded = desktopExpandedRecommendations.has(index);
+                          const benefits = extractBenefits(rec);
+                          return (
+                            <div
+                              key={`${rec.credit_card_name}-${index}-recommended`}
+                              className="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50/50 shadow-md hover:shadow-lg hover:border-primary/30 overflow-hidden transition-all duration-300 group"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDesktopExpandedRecommendations((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(index)) {
+                                      next.delete(index);
+                                    } else {
+                                      next.add(index);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="w-full flex items-center gap-6 px-6 py-6 text-left hover:bg-slate-50/50 transition-colors"
+                                aria-expanded={isExpanded}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <p className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">{rec.credit_card_name}</p>
+                                    <div className="flex items-center gap-1 text-primary font-semibold bg-primary/10 px-2 py-1 rounded-lg">
+                                      <Star className="w-4 h-4 text-primary" fill="currentColor" />
+                                      <span className="text-sm">{getDerivedRating(index)}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-slate-600 leading-relaxed">{getRecommendationHighlight(rec)}</p>
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isExpanded ? 'bg-primary/10 text-primary rotate-180' : 'bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary'}`}>
+                                    <ChevronDown className="w-5 h-5 transition-transform" />
+                                  </div>
+                                </div>
+                              </button>
+                              {isExpanded && (
+                                <div className="px-6 pb-6 pt-2 space-y-5 border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-200">
+                                  {benefits.length > 0 && (
+                                    <div className="space-y-3 pt-4">
+                                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Key Benefits</p>
+                                      {benefits.map((benefit, idx) => (
+                                        <div key={idx} className="flex items-start gap-3">
+                                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                                            <Check className="w-3 h-3 text-primary" strokeWidth={3} />
+                                          </div>
+                                          <p className="text-sm text-slate-700 leading-relaxed flex-1">{benefit}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-wrap gap-2 pt-2">
+                                    {rec.annual_fee && (
+                                      <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 shadow-sm">
+                                        {rec.annual_fee}
+                                      </span>
+                                    )}
+                                    {rec.intro_offer && (
+                                      <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                        {rec.intro_offer}
+                                      </span>
+                                    )}
+                                    {rec.rewards_rate && (
+                                      <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent/10 text-accent border border-accent/20">
+                                        {rec.rewards_rate}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <a
+                                    href={rec.apply_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-primary to-primary/90 text-white px-6 py-3 text-sm font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-105 active:scale-95 transition-all"
+                                  >
+                                    View Details
+                                    <ExternalLink className="w-4 h-4 ml-2" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/50 px-6 py-12 text-center">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                            <Sparkles className="w-8 h-8 text-primary" />
+                          </div>
+                          <p className="text-base text-slate-600 font-medium">Your personalized card lineup will appear here after I finish analyzing your preferences.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop: Dynamic Suggested Questions - Below Recommended Cards */}
+                  {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
+                    <div className="mt-4 pt-4 border-t border-slate-200/60">
+                      <p className="text-xs text-slate-500 mb-4 font-semibold uppercase tracking-wider">You might also ask</p>
+                      <div className="flex flex-row gap-4">
+                        {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestedQuestion(suggestion)}
+                            disabled={isLoading}
+                            className="bg-white rounded-xl p-3 border border-slate-200 hover:border-teal-400 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 min-h-[140px] max-w-[200px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                          >
+                            <div className="flex flex-col items-center text-center space-y-2.5 flex-1 justify-center">
+                              <div className="rounded-full bg-teal-50 p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center group-hover:bg-teal-100 transition-colors">
+                                <span className="text-xl group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
+                              </div>
+                              <h3 className="font-medium text-xs text-slate-700 leading-snug px-1.5 line-clamp-3">
+                                {(() => {
+                                  // Fix question mark positioning: move question marks from before words to the end
+                                  let fixed = suggestion;
+                                  // Remove question marks that appear before word characters
+                                  fixed = fixed.replace(/\?(\w)/g, '$1');
+                                  // Add question mark at the end if the text doesn't already end with punctuation
+                                  if (!fixed.match(/[?.!]$/)) {
+                                    fixed = fixed + '?';
+                                  }
+                                  return fixed;
+                                })()}
+                              </h3>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Layout - Only show when there are messages */}
+        {/* Hide chatbot on desktop when hasAskedQuestion is true (it's shown in the desktop redesign section) */}
         {messages.length > 0 && (
+        <div className="lg:hidden">
         <div className={messages.some(msg => msg.role === 'user') ? 'lg:relative' : ''}>
         <div 
           ref={chatbotContainerRef} 
-          className={`grid gap-6 mb-6 ${messages.some(msg => msg.role === 'user') ? 'mt-12 lg:mt-16 lg:mb-0' : 'mt-12 lg:mt-4'} ${messages.some(msg => msg.role === 'user') ? 'grid-cols-1 desktop-grid-cols lg:-ml-12 lg:-mr-12' : 'grid-cols-1 max-w-xl mx-auto'} ${messages.some(msg => msg.role === 'user') ? 'lg:h-[900px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}
+          className={`flex flex-col lg:flex-col gap-6 mb-6 ${messages.some(msg => msg.role === 'user') ? 'mt-12 lg:mt-16 lg:mb-0' : 'mt-12 lg:mt-4'} ${messages.some(msg => msg.role === 'user') ? 'lg:max-w-4xl lg:mx-auto' : 'max-w-xl mx-auto'} overflow-visible ${hasAskedQuestion ? 'lg:hidden' : 'lg:overflow-visible'}`}
+          style={{ display: 'flex', flexDirection: 'column' }}
         >
-          {/* Left Column - Chatbot */}
-          <div className={`${messages.some(msg => msg.role === 'user') ? 'lg:col-span-1 lg:relative' : 'col-span-1'} flex flex-col ${messages.some(msg => msg.role === 'user') ? 'min-h-[600px] lg:h-[900px]' : 'h-[500px]'} overflow-visible lg:overflow-hidden`}>
-            <div className={`lg:bg-transparent bg-transparent rounded-2xl lg:shadow-none border lg:border-transparent border-slate-200/30 lg:h-full flex flex-col backdrop-blur-sm ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ maxHeight: '100%', overflow: 'hidden' }}>
+          {/* Chatbot Section */}
+          <div className={`flex flex-col w-full ${messages.some(msg => msg.role === 'user') ? 'min-h-[600px]' : 'h-[500px]'} overflow-visible lg:overflow-visible`}>
+            <div className={`lg:bg-transparent bg-transparent rounded-2xl lg:shadow-none border lg:border-transparent border-slate-200/30 lg:h-auto flex flex-col backdrop-blur-sm w-full ${messages.some(msg => msg.role === 'user') ? 'p-4 lg:p-8' : 'p-4 md:p-6'}`} style={{ overflow: 'visible' }}>
               <div className={`${messages.some(msg => msg.role === 'user') ? 'mb-6 pb-4' : 'mb-4 pb-3'} border-b border-slate-200/60 flex-shrink-0 hidden lg:block`}>
                 <h3 className="text-xl lg:text-2xl font-bold text-slate-900 mb-1.5">Your Questions</h3>
                 <p className="text-sm text-slate-500 font-normal">Ask me anything about credit cards</p>
@@ -2832,43 +3356,6 @@ export default function Home() {
               </div>
               <div ref={messagesEndRef} />
               
-              {/* Desktop: Dynamic Suggested Questions - Inside scrollable messages area */}
-              {dynamicSuggestions.length > 0 && messages.length > 0 && !isLoading && (
-                <div className="hidden lg:block -mt-8 pt-0 max-w-xl lg:max-w-xl">
-                  <p className="text-xs text-slate-500 mb-1.5 font-semibold uppercase tracking-wider text-left">You might also ask</p>
-                  {/* Fixed three boxes grid for desktop */}
-                  <div className="grid grid-cols-3 gap-4">
-                    {dynamicSuggestions.slice(0, 3).map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestedQuestion(suggestion)}
-                        disabled={isLoading}
-                        className="bg-white rounded-xl p-3 border border-slate-200 hover:border-teal-400 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 min-h-[140px] flex flex-col disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                      >
-                        <div className="flex flex-col items-center text-center space-y-2.5 flex-1 justify-center">
-                          <div className="rounded-full bg-teal-50 p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center group-hover:bg-teal-100 transition-colors">
-                            <span className="text-xl group-hover:scale-110 transition-transform">{getSuggestionIcon(suggestion)}</span>
-                          </div>
-                          <h3 className="font-medium text-xs text-slate-700 leading-snug px-1.5 line-clamp-3">
-                            {(() => {
-                              // Fix question mark positioning: move question marks from before words to the end
-                              let fixed = suggestion;
-                              // Remove question marks that appear before word characters
-                              fixed = fixed.replace(/\?(\w)/g, '$1');
-                              // Add question mark at the end if the text doesn't already end with punctuation
-                              if (!fixed.match(/[?.!]$/)) {
-                                fixed = fixed + '?';
-                              }
-                              return fixed;
-                            })()}
-                          </h3>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
               {/* Mobile: Expandable recommendation boxes below chatbox */}
               {topThreeRecommendations.length > 0 && (
                 <div className="lg:hidden mt-4 space-y-3 flex-shrink-0 max-w-sm">
@@ -3148,10 +3635,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Column - Credit Card Recommendations - Only show after a question is asked */}
+          {/* Credit Card Recommendations - Only show after a question is asked - Desktop: Below chatbot */}
           {messages.some(msg => msg.role === 'user') && (
-          <div className="hidden lg:flex lg:col-span-1 flex-col h-[500px] lg:h-[900px]" style={{ overflow: 'hidden' }}>
-            <div className="lg:bg-transparent bg-white rounded-2xl lg:shadow-none lg:border-transparent shadow-2xl shadow-slate-300/40 border border-slate-200/60 p-4 lg:p-8 h-full flex flex-col backdrop-blur-sm" style={{ maxHeight: '100%', overflow: 'hidden' }}>
+          <div className="hidden lg:flex flex-col w-full" style={{ overflow: 'visible' }}>
+            <div className="lg:bg-transparent bg-white rounded-2xl lg:shadow-none lg:border-transparent shadow-2xl shadow-slate-300/40 border border-slate-200/60 p-4 lg:p-8 flex flex-col backdrop-blur-sm w-full" style={{ overflow: 'visible' }}>
               <div className="hidden lg:flex items-center gap-3 mb-6 lg:mb-8 flex-shrink-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                   <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3164,7 +3651,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto min-h-0 max-h-full scrollbar-thin pt-12" style={{ scrollbarWidth: 'thin' }}>
+              <div className="overflow-y-visible scrollbar-thin pt-12" style={{ scrollbarWidth: 'thin' }}>
                 {(() => {
                   // Find only the most recent assistant message with recommendations
                   const mostRecentAssistantMessage = [...messages]
@@ -3271,7 +3758,7 @@ export default function Home() {
 
                   return (
                     <>
-                      <div className="flex flex-col gap-4 mb-6 max-w-[80%] mx-auto">
+                      <div className="flex flex-col gap-4 mb-6 w-full">
                         {mostRecentAssistantMessage.recommendations.slice(0, 3).map((rec, recIndex) => {
                           // Extract issuer from card name (usually first word)
                           const cardNameParts = rec.credit_card_name.split(' ');
@@ -3279,49 +3766,7 @@ export default function Home() {
                           const cardName = cardNameParts.slice(1).join(' ') || rec.credit_card_name;
                           const isOpen = openCardBoxes.has(recIndex);
                           
-                          // Parse benefits from reason, perks, or rewards_rate
-                          const parseBenefits = (): string[] => {
-                            const benefits: string[] = [];
-                            
-                            // Add rewards rate as a benefit if available
-                            if (rec.rewards_rate && !rec.rewards_rate.toLowerCase().includes('apr')) {
-                              benefits.push(rec.rewards_rate);
-                            }
-                            
-                            // Parse perks if available
-                            if (rec.perks) {
-                              const perkList = rec.perks
-                                .split(/[.,;]/)
-                                .map(p => p.trim())
-                                .filter(p => p.length > 10 && p.length < 100); // Reasonable length
-                              benefits.push(...perkList);
-                            }
-                            
-                            // Parse reason for key benefits
-                            if (rec.reason && benefits.length < 4) {
-                              const reasonBenefits = rec.reason
-                                .split(/[.,;]/)
-                                .map(r => r.trim())
-                                .filter(r => {
-                                  const lower = r.toLowerCase();
-                                  return r.length > 15 && 
-                                         r.length < 100 &&
-                                         !lower.includes('annual fee') &&
-                                         !lower.includes('credit score') &&
-                                         (lower.includes('points') || 
-                                          lower.includes('cash back') || 
-                                          lower.includes('rewards') ||
-                                          lower.includes('travel') ||
-                                          lower.includes('perk') ||
-                                          lower.includes('benefit'));
-                                });
-                              benefits.push(...reasonBenefits);
-                            }
-                            
-                            return benefits.slice(0, 4); // Limit to 4 benefits
-                          };
-                          
-                          const benefits = parseBenefits();
+                          const benefits = extractBenefits(rec);
                           
                           const toggleBox = () => {
                             setOpenCardBoxes(prev => {
@@ -3412,22 +3857,6 @@ export default function Home() {
                           );
                         })}
                       </div>
-                      {/* Cartoon below the cards - Desktop only */}
-                      {currentCartoon && (
-                        <div className="hidden lg:flex mt-6 flex-col items-center">
-                          <div className="w-full max-w-lg rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
-                            <img
-                              src={currentCartoon.imageUrl}
-                              alt="Loading cartoon"
-                              className="max-w-full max-h-64 object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </>
                   );
                 })()}
@@ -3435,6 +3864,7 @@ export default function Home() {
             </div>
           </div>
           )}
+        </div>
         </div>
         </div>
         )}
@@ -3470,6 +3900,33 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Chatbot Input at Bottom - Desktop Only */}
+      {hasAskedQuestion && (
+        <div className="hidden lg:block fixed bottom-0 left-0 right-0 z-50 bg-transparent border-t border-slate-200/40">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about credit cards..."
+                  className="w-full h-14 rounded-2xl border-2 border-slate-200 bg-white px-6 pr-16 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-primary/90 text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
