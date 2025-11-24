@@ -2724,7 +2724,7 @@ export default function Home() {
                         overflowX: 'hidden', 
                         overflowY: 'auto',
                         direction: 'rtl',
-                        paddingBottom: '1rem'
+                        paddingBottom: '0'
                       }}
                     >
                       <div style={{ direction: 'ltr' }}>
@@ -2755,7 +2755,7 @@ export default function Home() {
                             );
 
                             return (
-                              <div key={displayIndex} className="mb-8" data-message-index={displayIndex}>
+                              <div key={displayIndex} className="mb-3" data-message-index={displayIndex}>
                                 {/* User Message */}
                                 <div className="flex items-start gap-3 mb-5">
                                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-md ring-2 ring-teal-100">
@@ -2802,7 +2802,7 @@ export default function Home() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                                      <div className="bg-white rounded-2xl pt-5 px-5 pb-4 shadow-sm border border-slate-200/60 flex-1 transition-all duration-200 min-w-0 overflow-hidden">
                                         <div className="prose prose-sm max-w-none overflow-x-hidden">
                                           <ReactMarkdown
                                             components={{
@@ -2815,13 +2815,13 @@ export default function Home() {
                                                 />
                                               ),
                                               p: ({ ...props }) => (
-                                                <p className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
+                                                <p className="mb-2 text-[15px] leading-[1.7] text-slate-700 break-words last:mb-0" {...props} />
                                               ),
                                               ul: ({ ...props }) => (
-                                                <ul className="list-none space-y-2.5 my-3" {...props} />
+                                                <ul className="list-none space-y-2.5 my-2 last:mb-0" {...props} />
                                               ),
                                               li: ({ ...props }) => (
-                                                <li className="mb-3 text-[15px] leading-[1.7] text-slate-700 break-words" {...props} />
+                                                <li className="mb-2 text-[15px] leading-[1.7] text-slate-700 break-words last:mb-0" {...props} />
                                               ),
                                             }}
                                           >
@@ -2885,7 +2885,7 @@ export default function Home() {
                   </div>
 
                   {/* Recommended Cards Section - Directly below Conversation History */}
-                  <div className="mt-2 pt-2 border-t border-slate-200/60 max-w-2xl">
+                  <div className="-mt-2 pt-6 border-t border-slate-200/60 max-w-2xl">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full"></div>
                       <div>
