@@ -7,19 +7,25 @@
   --background-start-rgb: 248, 250, 252; /* slate-50 */
   --background-end-rgb: 255, 255, 255;
   
-  /* Design System Colors */
-  --primary: 195 100% 45%;
-  --primary-light: 195 100% 60%;
-  --accent: 195 100% 45%;
+  /* Design System Colors - Teal/Cyan Theme */
+  --primary: 174 72% 40%;
+  --primary-light: 174 72% 50%;
+  --accent: 174 72% 40%;
+  --background: 210 40% 98%;
+  --secondary: 174 45% 95%;
+  --muted-foreground: 215 15% 50%;
   
   /* Gradient Variables */
-  --gradient-start: 195 100% 45%;
-  --gradient-end: 220 90% 60%;
-  --hero-gradient: linear-gradient(135deg, hsl(195 100% 95%), hsl(220 90% 98%));
+  --gradient-start: 174 72% 40%;
+  --gradient-end: 174 72% 50%;
+  --hero-gradient: linear-gradient(135deg, hsl(174 45% 95%), hsl(210 40% 98%));
   
   /* Shadow Variables */
-  --shadow-elegant: 0 10px 40px -10px hsl(195 100% 45% / 0.15);
+  --shadow-elegant: 0 10px 40px -10px hsl(174 72% 40% / 0.15);
   --shadow-card: 0 4px 20px -4px hsl(220 13% 13% / 0.08);
+  
+  /* Border Radius */
+  --radius: 0.75rem;
   
   /* Transition Variables */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -45,6 +51,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Typography - Apply font-heading to h1-h6 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), sans-serif;
+}
+
+/* Body uses font-body class (already applied in layout.tsx) */
 
 /* Custom scrollbar styles */
 .scrollbar-thin {

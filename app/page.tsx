@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Recommendation } from '@/types';
 import SwipeToLoad from '@/components/SwipeToLoad';
 import CartoonDisplay from '@/components/CartoonDisplay';
@@ -294,6 +294,13 @@ export default function Home() {
         const afterMarkdownPattern = new RegExp(`\\*\\*${escapedCardName}\\*\\*\\s*${escapedCardName}`, 'gi');
         cleaned = cleaned.replace(afterMarkdownPattern, `**${cardName}**`);
         
+        // Pattern 8b: Remove duplicate card name after bold with dash/description
+        // This handles: "**Card Name**Card Name - description" -> "**Card Name** - description"
+        const afterMarkdownWithDash = new RegExp(`\\*\\*${escapedCardName}\\*\\*${escapedCardName}(\\s*[-–—]?\\s*)`, 'gi');
+        cleaned = cleaned.replace(afterMarkdownWithDash, (match, p1) => {
+          return `**${cardName}**${p1}`;
+        });
+        
         // Pattern 9: Remove standalone card name that appears after it was already in markdown
         // This handles: "**\n\ncardName\n\n**cardName\n\ncardName" -> keep only the one in markdown
         const standaloneAfterMarkdown = new RegExp(`\\*\\*[\\s\\n]*${escapedCardName}[\\s\\n]*\\*\\*[\\s\\n]*${escapedCardName}`, 'gi');
@@ -314,6 +321,17 @@ export default function Home() {
         // But only if they're adjacent (not separated by other text)
         const adjacentDuplicate = new RegExp(`(${escapedCardName})([\\s\\n\\*]{1,20})\\1(?![\\w])`, 'gi');
         cleaned = cleaned.replace(adjacentDuplicate, '$1');
+        
+        // Pattern 13: Handle card name followed by asterisks and same card name with text after
+        // This catches: "cashRewards****cashRewards - description" -> "cashRewards - description"
+        // The key is matching the duplicate even when followed by additional text
+        const duplicateWithTextAfter = new RegExp(`(${escapedCardName})\\*{2,}\\1(\\s*[-–—]?\\s*)`, 'gi');
+        cleaned = cleaned.replace(duplicateWithTextAfter, '$1$2');
+        
+        // Pattern 14: More general - card name with asterisks and same name, keeping everything after
+        // This is a catch-all for patterns like "cardName****cardName anything else"
+        const duplicateKeepAfter = new RegExp(`(${escapedCardName})\\*{2,}\\1(\\s+)`, 'gi');
+        cleaned = cleaned.replace(duplicateKeepAfter, '$1$2');
       });
     }
     
@@ -375,20 +393,57 @@ export default function Home() {
     cleaned = processedLines.join('\n');
     
     // Then, handle general patterns for any duplicate text with asterisks
-    // Pattern 1: Match any word characters followed by 2+ asterisks and same word
-    cleaned = cleaned.replace(/(\w+)\*{2,}\1/gi, '$1');
+    // These patterns handle cases where the card name isn't in the recommendations list
+    // Process line by line to avoid cross-line matches and handle duplicates properly
     
-    // Pattern 2: Match any sequence of characters (not newline/asterisk) followed by 2+ asterisks and same sequence
-    cleaned = cleaned.replace(/([^\n\r\*]+)\*{2,}\1/g, '$1');
+    // Pattern 1: Match any sequence followed by 2+ asterisks and same sequence, keeping everything after on the same line
+    // This handles: "cashRewards****cashRewards - description" -> "cashRewards - description"
+    cleaned = cleaned.split('\n').map(line => {
+      // Match pattern: text****text (rest of line)
+      // Capture the duplicate text and everything after it
+      return line.replace(/([A-Za-z0-9]+)\*{2,}\1(\s*.*)$/gi, (match, p1, p2) => {
+        // p1 is the duplicate text, p2 is everything after (including spaces and dashes)
+        const afterText = p2.trim();
+        return afterText ? p1 + (afterText.startsWith('-') || afterText.startsWith('–') || afterText.startsWith('—') ? ' ' + afterText : ' ' + afterText) : p1;
+      });
+    }).join('\n');
     
-    // Pattern 3: Match text with spaces, quotes, hyphens
-    cleaned = cleaned.replace(/([A-Za-z0-9\s"\-_]+)\*{2,}\1/gi, '$1');
+    // Pattern 2: Match any word characters followed by 2+ asterisks and same word (standalone, no text after)
+    cleaned = cleaned.replace(/(\w+)\*{2,}\1(?=\s*$|\s*\n|\s*\[|\s*\(|$)/gi, '$1');
     
-    // Pattern 4: Handle whitespace around asterisks
-    cleaned = cleaned.replace(/([^\n\r\*]+)\s*\*{2,}\s*\1/g, '$1');
+    // Pattern 3: Match text with spaces, quotes, hyphens (more complex card names) - process line by line
+    cleaned = cleaned.split('\n').map(line => {
+      return line.replace(/([A-Za-z0-9\s"\-_]+)\*{2,}\1(\s*.*)$/gi, (match, p1, p2) => {
+        const afterText = p2.trim();
+        const trimmedP1 = p1.trim();
+        return afterText ? trimmedP1 + (afterText.startsWith('-') || afterText.startsWith('–') || afterText.startsWith('—') ? ' ' + afterText : ' ' + afterText) : trimmedP1;
+      });
+    }).join('\n');
     
-    // Pattern 5: Most aggressive - match any text with 2+ asterisks
-    cleaned = cleaned.replace(/(.+?)\*{2,}\1/g, '$1');
+    // Pattern 4: Handle whitespace around asterisks - process line by line
+    cleaned = cleaned.split('\n').map(line => {
+      return line.replace(/([^\n\r\*]+)\s*\*{2,}\s*\1(\s*.*)$/g, (match, p1, p2) => {
+        const afterText = p2.trim();
+        const trimmedP1 = p1.trim();
+        return afterText ? trimmedP1 + (afterText.startsWith('-') || afterText.startsWith('–') || afterText.startsWith('—') ? ' ' + afterText : ' ' + afterText) : trimmedP1;
+      });
+    }).join('\n');
+    
+    // Pattern 5: Handle "**Card Name**Card Name - description" pattern (card name after bold markdown)
+    // This catches cases where card name appears in bold, then immediately again without separator
+    cleaned = cleaned.split('\n').map(line => {
+      // Match: **text**text (with optional dash/description after)
+      return line.replace(/\*\*([^*]+?)\*\*\1(\s*[-–—]?\s*.*?)$/gi, (match, p1, p2) => {
+        // p1 is the card name, p2 is everything after (dash, description, etc.)
+        const afterText = p2.trim();
+        const trimmedCardName = p1.trim();
+        // If there's text after, keep it; otherwise just return the bold card name
+        return afterText ? `**${trimmedCardName}**${afterText.startsWith('-') || afterText.startsWith('–') || afterText.startsWith('—') ? ' ' + afterText : ' ' + afterText}` : `**${trimmedCardName}**`;
+      });
+    }).join('\n');
+    
+    // Pattern 6: Handle "**Card Name**Card Name" without description (standalone duplicate)
+    cleaned = cleaned.replace(/\*\*([^*]+?)\*\*\1(?=\s*$|\s*\n|\s*\[|\s*\(|$)/gi, '**$1**');
     
     // Also handle cases with markdown links: "Card Name**[Card Name](url)"
     cleaned = cleaned.replace(/([^\n\*\[\]]+?)\*+\[([^\]]+)\]\([^\)]+\)/g, (match, p1, p2) => {
@@ -405,6 +460,57 @@ export default function Home() {
       }
       return match;
     });
+    
+    // Final pass: Detect and remove duplicate card listings in the same response
+    // This handles cases where the same card appears multiple times as separate listings
+    if (recommendations && recommendations.length > 0) {
+      const lines = cleaned.split('\n');
+      const seenCardNames = new Map<string, number>(); // Track card name and its first occurrence line index
+      
+      // Create a map of normalized card names to their original names for matching
+      const cardNameMap = new Map<string, string>();
+      recommendations.forEach(rec => {
+        const normalized = rec.credit_card_name.toLowerCase().replace(/[®™©]/g, '').trim();
+        cardNameMap.set(normalized, rec.credit_card_name);
+      });
+      
+      const processedLines = lines.map((line, index) => {
+        const trimmedLine = line.trim();
+        const lineLower = trimmedLine.toLowerCase();
+        
+        // Check if this line looks like a card listing
+        const isCardListing = /^[-•*]\s*/.test(trimmedLine) || 
+                             /^\*\*/.test(trimmedLine) || 
+                             /^\[/.test(trimmedLine) ||
+                             (index > 0 && lines[index - 1].trim() === ''); // Previous line was blank
+        
+        if (!isCardListing) {
+          return line;
+        }
+        
+        // Check if this line contains any of the card names
+        for (const [normalizedCardName, originalCardName] of cardNameMap.entries()) {
+          // Simple check: does the line contain the card name (case-insensitive, ignoring special chars)
+          const cardNameInLine = lineLower.includes(normalizedCardName);
+          
+          if (cardNameInLine) {
+            if (seenCardNames.has(normalizedCardName)) {
+              // This card has been seen before - remove this duplicate listing
+              // Keep the first occurrence to maintain order and completeness
+              return '';
+            } else {
+              // First time seeing this card name
+              seenCardNames.set(normalizedCardName, index);
+            }
+            break; // Found a match, no need to check other card names
+          }
+        }
+        
+        return line;
+      });
+      
+      cleaned = processedLines.filter(line => line.trim() !== '').join('\n');
+    }
     
     return cleaned;
   };
@@ -2081,13 +2187,31 @@ export default function Home() {
         // Get current shown cartoons from ref (always has latest value)
         const currentShown = shownCartoonsRef.current;
         
-        // Build query parameter with shown cartoons
+        // Detect device type
+        const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const deviceType = isMobile ? 'mobile' : 'desktop';
+        
+        console.log(`[Cartoon] Detected device type: ${deviceType} (width: ${window.innerWidth}px)`);
+        console.log(`[Cartoon] Loading from folder: ${deviceType === 'mobile' ? 'mobile' : 'desktop'}`);
+        
+        // Build query parameter with shown cartoons and device type
         const shownParam = currentShown.length > 0 
           ? `&shown=${encodeURIComponent(JSON.stringify(currentShown))}`
           : '';
         
-        const response = await fetch(`/api/cartoon?t=${Date.now()}${shownParam}`);
+        const apiUrl = `/api/cartoon?t=${Date.now()}&device=${deviceType}${shownParam}`;
+        console.log(`[Cartoon] Fetching from API: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
         const data = await response.json();
+        
+        if (data.imageUrl) {
+          console.log(`[Cartoon] Successfully loaded cartoon from: ${data.imageUrl}`);
+          console.log(`[Cartoon] Source: ${data.source || 'unknown'}`);
+        } else {
+          console.warn('[Cartoon] No imageUrl in response:', data);
+        }
+        
         if (data.imageUrl) {
           // Double-check that this cartoon hasn't been shown (in case of race conditions)
           const isAlreadyShown = shownCartoonsRef.current.includes(data.imageUrl);
@@ -2130,13 +2254,31 @@ export default function Home() {
           // Get current shown cartoons from ref (always has latest value)
           const currentShown = shownCartoonsRef.current;
           
-          // Build query parameter with shown cartoons
+          // Detect device type
+          const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const deviceType = isMobile ? 'mobile' : 'desktop';
+          
+          console.log(`[Cartoon] Loading new cartoon - Device: ${deviceType} (width: ${window.innerWidth}px)`);
+          console.log(`[Cartoon] Loading from folder: ${deviceType === 'mobile' ? 'mobile' : 'desktop'}`);
+          
+          // Build query parameter with shown cartoons and device type
           const shownParam = currentShown.length > 0 
             ? `&shown=${encodeURIComponent(JSON.stringify(currentShown))}`
             : '';
           
-          const response = await fetch(`/api/cartoon?t=${Date.now()}${shownParam}`);
+          const apiUrl = `/api/cartoon?t=${Date.now()}&device=${deviceType}${shownParam}`;
+          console.log(`[Cartoon] Fetching from API: ${apiUrl}`);
+          
+          const response = await fetch(apiUrl);
           const data = await response.json();
+          
+          if (data.imageUrl) {
+            console.log(`[Cartoon] Successfully loaded cartoon from: ${data.imageUrl}`);
+            console.log(`[Cartoon] Source: ${data.source || 'unknown'}`);
+          } else {
+            console.warn('[Cartoon] No imageUrl in response:', data);
+          }
+          
           if (data.imageUrl) {
             // Double-check that this cartoon hasn't been shown (in case of race conditions)
             const isAlreadyShown = shownCartoonsRef.current.includes(data.imageUrl);
@@ -3088,9 +3230,9 @@ export default function Home() {
         {/* Desktop redesign after first question */}
         {hasAskedQuestion && (
           <section className="hidden lg:block mt-8 mb-8">
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-4xl mx-auto px-4 lg:px-6 space-y-6">
               {/* Hero Input Card */}
-              <div className="relative bg-background/80 backdrop-blur-sm border border-slate-200/40 rounded-3xl shadow-lg shadow-slate-200/20 px-14 py-12 overflow-hidden">
+              <div className="relative bg-background/80 backdrop-blur-sm border border-slate-200/40 rounded-3xl shadow-lg shadow-slate-200/20 px-8 py-8 overflow-hidden">
                 {/* Decorative gradient overlay */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-accent/5 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
@@ -3099,12 +3241,12 @@ export default function Home() {
                   {/* Chatbot Conversation with Cartoon */}
                   <div className="flex items-start gap-8">
                     {/* Chatbot Conversation */}
-                    <div className="flex-1 max-w-3xl">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+                    <div className="flex-1">
+                      {/* Header with border-left accent */}
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="w-1 h-12 bg-primary rounded-full"></div>
                         <div>
-                          <h3 className="text-2xl md:text-3xl font-bold text-foreground">Conversation History</h3>
-                          <p className="text-sm md:text-base text-muted-foreground mt-1">Your chats with the AI, all right where you left them.</p>
+                          <h3 className={`text-4xl font-heading font-bold text-foreground ${messages.length > 0 ? 'lg:text-2xl' : 'lg:text-5xl'}`}>Conversation History</h3>
                         </div>
                       </div>
                     <div 
@@ -3148,32 +3290,28 @@ export default function Home() {
                             );
 
                             return (
-                              <div key={displayIndex} className="mb-3 last:mb-0" data-message-index={displayIndex}>
+                              <div key={displayIndex} className="mb-6 last:mb-0" data-message-index={displayIndex}>
                                 {/* User Message */}
                                 <div className="flex items-start gap-3 mb-5">
-                                  <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center justify-center shadow-md ring-2 ring-teal-100">
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
+                                  <div className="flex-shrink-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-md">
+                                    <User className="w-5 h-5 text-white" />
                                   </div>
-                                  <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl p-4 px-5 shadow-md flex-1 transition-all duration-200 min-w-0 overflow-hidden">
-                                    <p className="whitespace-pre-wrap text-[15px] lg:text-[17px] font-medium leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
+                                  <div className="bg-primary text-white rounded-2xl rounded-tl-sm p-4 px-5 shadow-md flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                                    <p className="whitespace-pre-wrap text-lg font-medium break-words overflow-wrap-anywhere">{message.content}</p>
                                   </div>
                                 </div>
                                 
                                 {/* Bot Response */}
                                 {message.summary && (
                                   <div className={`flex items-start gap-3 ${isErrorMessage ? '' : 'mb-0'}`}>
-                                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shadow-sm ring-1 ring-slate-200">
-                                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                      </svg>
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-secondary flex items-center justify-center shadow-sm border border-slate-200">
+                                      <Sparkles className="w-5 h-5 text-primary" />
                                     </div>
                                     {isErrorMessage ? (
-                                      <div className="flex-1 bg-blue-50 rounded-2xl p-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden">
+                                      <div className="flex-1 bg-white rounded-2xl p-5 shadow-md border border-slate-200 transition-all duration-200 min-w-0 overflow-hidden">
                                         <div className="flex items-start gap-3 mb-4">
                                           <span className="text-2xl flex-shrink-0">💡</span>
-                                        <p className="text-[15px] lg:text-[17px] text-slate-700 leading-relaxed font-medium break-words">
+                                        <p className="text-base text-foreground leading-relaxed break-words">
                                             Let me help you find the right card. Try asking about specific features like:
                                           </p>
                                         </div>
@@ -3187,7 +3325,7 @@ export default function Home() {
                                               key={idx}
                                               onClick={() => handleSuggestedQuestion(suggestion)}
                                               disabled={isLoading}
-                                              className="border border-teal-600 text-teal-600 rounded-full px-4 py-2.5 text-sm font-medium hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                              className="border border-primary text-primary rounded-full px-4 py-2.5 text-sm font-medium hover:bg-secondary focus:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                               {suggestion}
                                             </button>
@@ -3195,7 +3333,7 @@ export default function Home() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="bg-white rounded-2xl pt-5 px-5 pb-4 shadow-sm border border-slate-200/60 flex-1 transition-all duration-200 min-w-0 overflow-hidden">
+                                      <div className="bg-white rounded-2xl pt-5 px-5 pb-4 shadow-md border border-slate-200 flex-1 transition-all duration-200 min-w-0 overflow-hidden">
                                       <div className="prose prose-sm lg:prose-base max-w-none overflow-x-hidden prose-li:my-0">
                                           <ReactMarkdown
                                             components={{
@@ -3204,18 +3342,35 @@ export default function Home() {
                                                   {...props} 
                                                   target="_blank" 
                                                   rel="noopener noreferrer"
-                                                  className="text-teal-600 font-semibold hover:text-teal-700 underline decoration-2 decoration-teal-300 hover:decoration-teal-500 transition-colors duration-200 break-words"
+                                                  className="text-primary font-semibold hover:text-primary/80 underline decoration-2 decoration-primary/30 hover:decoration-primary/50 transition-colors duration-200 break-words"
                                                 />
                                               ),
                                               p: ({ ...props }) => (
-                                                <p className="mb-2 text-[15px] lg:text-[17px] leading-[1.7] text-slate-700 break-words last:mb-0" {...props} />
+                                                <p className="mb-2 text-base text-foreground leading-relaxed break-words last:mb-0" {...props} />
                                               ),
                                               ul: ({ ...props }) => (
                                                 <ul className="list-none space-y-2.5 lg:space-y-4 my-2 last:mb-0 [&>li]:block [&>li]:w-full" {...props} />
                                               ),
-                                              li: ({ ...props }) => (
-                                                <li className="mb-2 lg:mb-4 block w-full text-[15px] lg:text-[17px] leading-[1.7] text-slate-700 break-words last:mb-0 whitespace-normal" style={{ display: 'block', clear: 'both', width: '100%' }} {...props} />
-                                              ),
+                                              li: ({ ...props }) => {
+                                                const children = props.children;
+                                                // Check if children contain an anchor element (link)
+                                                const hasLink = React.Children.toArray(children).some((child: any) => 
+                                                  child?.type === 'a' || (typeof child === 'object' && child?.props?.href)
+                                                );
+                                                // Also check if it's a string with markdown link pattern
+                                                const text = typeof children === 'string' ? children : '';
+                                                const hasLinkPattern = text.includes('[') && text.includes('](');
+                                                
+                                                if (hasLink || hasLinkPattern) {
+                                                  return (
+                                                    <li className="mb-2 lg:mb-4 block w-full text-lg font-semibold text-primary leading-relaxed break-words last:mb-0 whitespace-normal" style={{ display: 'block', clear: 'both', width: '100%' }} {...props} />
+                                                  );
+                                                }
+                                                // Regular option description
+                                                return (
+                                                  <li className="mb-2 lg:mb-4 block w-full text-base text-foreground leading-relaxed break-words last:mb-0 whitespace-normal" style={{ display: 'block', clear: 'both', width: '100%' }} {...props} />
+                                                );
+                                              },
                                             }}
                                           >
                                             {(() => {
@@ -3546,7 +3701,7 @@ export default function Home() {
                               </svg>
                             </div>
                             <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl p-4 px-5 shadow-md flex-1 transition-all duration-200 min-w-0 overflow-hidden max-w-[72.25%]">
-                              <p className="whitespace-pre-wrap text-[15px] lg:text-[17px] font-medium leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
+                              <p className="whitespace-pre-wrap text-xl lg:text-2xl font-bold tracking-tight leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
                             </div>
                           </div>
                           
@@ -3562,7 +3717,7 @@ export default function Home() {
                                 <div className="flex-1 bg-blue-50 rounded-2xl p-5 shadow-sm border border-blue-100 transition-all duration-200 min-w-0 overflow-hidden max-w-[72.25%]">
                                   <div className="flex items-start gap-3 mb-4">
                                     <span className="text-2xl flex-shrink-0">💡</span>
-                                    <p className="text-[15px] lg:text-[17px] text-slate-700 leading-relaxed font-medium break-words">
+                                    <p className="text-xl lg:text-2xl text-slate-700 leading-relaxed tracking-tight break-words">
                                       Let me help you find the right card. Try asking about specific features like:
                                     </p>
                                   </div>
@@ -3606,7 +3761,7 @@ export default function Home() {
                                           <h3 className="text-base font-semibold text-slate-900 mt-3 mb-2" {...props} />
                                         ),
                                         p: ({ ...props }) => (
-                                        <p className="mb-3 text-[15px] lg:text-[17px] leading-[1.7] text-slate-700 break-words" {...props} />
+                                        <p className="mb-3 text-xl lg:text-2xl tracking-tight leading-[1.7] text-slate-700 break-words" {...props} />
                                         ),
                                         ul: ({ ...props }) => (
                                           <ul
@@ -3616,7 +3771,7 @@ export default function Home() {
                                         ),
                                         li: ({ ...props }) => (
                                           <li
-                                            className="mb-3 lg:mb-4 block w-full text-[15px] lg:text-[17px] leading-[1.7] text-slate-700 break-words pl-1 lg:pl-4 whitespace-normal"
+                                            className="mb-3 lg:mb-4 block w-full text-xl lg:text-2xl tracking-tight leading-[1.7] text-slate-700 break-words pl-1 lg:pl-4 whitespace-normal"
                                             style={{ display: 'block', clear: 'both', width: '100%' }}
                                             {...props}
                                           />
@@ -3732,7 +3887,7 @@ export default function Home() {
                           </div>
                           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/60 max-w-[30.6rem]">
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-600 text-[15px] lg:text-[17px] font-medium">Thinking</span>
+                              <span className="text-slate-600 text-xl lg:text-2xl tracking-tight">Thinking</span>
                               <div className="flex gap-1.5">
                                 <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                 <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -4064,7 +4219,7 @@ export default function Home() {
                           onChange={(e) => setInput(e.target.value)}
                           onKeyPress={handleKeyPress}
                           placeholder="Ask about credit cards..."
-                          className="w-full min-h-[56px] h-12 py-3 px-4 pr-14 text-[15px] border border-slate-300 rounded-xl shadow-sm bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200"
+                          className="w-full min-h-[56px] h-12 py-4 px-6 pr-14 text-base border border-slate-300 rounded-2xl shadow-sm bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                         />
                         <button
                           onClick={handleSend}
@@ -4377,7 +4532,7 @@ export default function Home() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask about credit cards..."
-                    className={`w-full h-14 rounded-xl border px-5 pr-16 text-base text-slate-900 placeholder:text-slate-400 shadow-md transition-all ${
+                    className={`w-full h-14 rounded-2xl border px-6 py-4 pr-16 text-base text-foreground placeholder:text-muted-foreground shadow-md transition-all ${
                       input.trim() 
                         ? 'border-primary/40 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary' 
                         : 'border-primary/30 bg-gradient-to-r from-white to-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary shadow-primary/10'
@@ -4405,13 +4560,13 @@ export default function Home() {
                         key={index}
                         onClick={() => handleSuggestedQuestion(suggestion)}
                         disabled={isLoading}
-                        className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200/70 bg-white/70 text-left shadow-sm hover:shadow-md hover:border-teal-400 hover:scale-[1.01] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 rounded-full border border-slate-200/70 bg-white/70 text-left shadow-sm hover:shadow-md hover:border-primary hover:scale-[1.01] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                         aria-label={`Ask: ${suggestion}`}
                       >
-                        <div className="rounded-full bg-teal-50 p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-base">
+                        <div className="rounded-full bg-secondary p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-lg flex-shrink-0">
                           <span>{getSuggestionIcon(suggestion)}</span>
                         </div>
-                        <span className="text-sm font-medium text-slate-700 leading-snug">
+                        <span className="text-sm font-medium text-foreground leading-snug">
                           {(() => {
                             let fixed = suggestion;
                             fixed = fixed.replace(/\?(\w)/g, '$1');

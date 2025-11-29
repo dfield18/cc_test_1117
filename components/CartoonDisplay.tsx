@@ -20,8 +20,24 @@ export default function CartoonDisplay() {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('/api/cartoon');
+        // Detect device type
+        const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const deviceType = isMobile ? 'mobile' : 'desktop';
+        
+        console.log(`[CartoonDisplay] Detected device type: ${deviceType} (width: ${window.innerWidth}px)`);
+        console.log(`[CartoonDisplay] Loading from folder: ${deviceType === 'mobile' ? 'mobile' : 'desktop'}`);
+        
+        const apiUrl = `/api/cartoon?device=${deviceType}`;
+        console.log(`[CartoonDisplay] Fetching from API: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
         const data = await response.json();
+        
+        if (data.imageUrl) {
+          console.log(`[CartoonDisplay] Successfully loaded cartoon from: ${data.imageUrl}`);
+        } else {
+          console.warn('[CartoonDisplay] No imageUrl in response:', data);
+        }
         
         if (mounted) {
           if (data.error) {

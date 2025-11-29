@@ -295,19 +295,19 @@ async function shouldReturnCards(
   // First, check for specific question patterns that should NOT return cards
   // These are definition, explanation, or how-to questions
   const specificQuestionPatterns = [
-    /^what is\s+(an|a|the)?\s+/i,  // "What is an annual fee?"
-    /^what's\s+(an|a|the)?\s+/i,    // "What's an annual fee?"
-    /^what are\s+/i,                 // "What are credit card rewards?"
-    /^how do\s+/i,                   // "How do credit cards work?"
-    /^how does\s+/i,                 // "How does balance transfer work?"
-    /^how can\s+/i,                  // "How can I improve my credit score?"
-    /^explain\s+/i,                  // "Explain what APR means"
-    /^can you explain\s+/i,          // "Can you explain what APR means?"
-    /^tell me about\s+/i,            // "Tell me about credit scores"
-    /^what does\s+/i,                // "What does APR mean?"
+    /^what is\s+/i,                  // "What is cash back?" or "What is an annual fee?"
+    /^what's\s+/i,                    // "What's cash back?" or "What's an annual fee?"
+    /^what are\s+/i,                  // "What are credit card rewards?"
+    /^how do\s+/i,                    // "How do credit cards work?"
+    /^how does\s+/i,                  // "How does balance transfer work?"
+    /^how can\s+/i,                   // "How can I improve my credit score?"
+    /^explain\s+/i,                   // "Explain what APR means"
+    /^can you explain\s+/i,           // "Can you explain what APR means?"
+    /^tell me about\s+/i,             // "Tell me about credit scores"
+    /^what does\s+/i,                 // "What does APR mean?"
     /^what's the difference between/i, // "What's the difference between cash back and points?"
-    /^difference between/i,          // "Difference between cash back and points"
-    /^compare\s+/i,                  // "Compare cash back vs points" (conceptual comparison)
+    /^difference between/i,           // "Difference between cash back and points"
+    /^compare\s+/i,                   // "Compare cash back vs points" (conceptual comparison)
   ];
   
   // Also check for information questions about specific cards (e.g., "What is the annual fee of Chase Sapphire?")
@@ -332,39 +332,37 @@ async function shouldReturnCards(
   
   // If it's a specific question pattern, check if it's asking for a definition/explanation
   // vs asking for card recommendations
+  // IMPORTANT: Check this BEFORE checking recommendation keywords, so definition questions
+  // like "what is cash back?" don't get caught by the recommendation keyword check
   if (isSpecificQuestion) {
-    // These keywords suggest the question is about concepts, not card recommendations
-    const conceptKeywords = [
-      'mean', 'means', 'meaning', 'work', 'works', 'difference', 'compare',
-      'explain', 'definition', 'define', 'is', 'are', 'does', 'do'
+    // Check if it contains recommendation-seeking words - if so, it might still want cards
+    // Examples: "What is the best card?" should return cards, but "What is cash back?" should not
+    const recommendationSeekingWords = [
+      'best', 'recommend', 'suggest', 'should i', 'which', 'what card', 'card for',
+      'show me', 'give me', 'find', 'looking for', 'need', 'want'
     ];
+    const isSeekingRecommendation = recommendationSeekingWords.some(word => queryLower.includes(word));
     
-    // Check if the question is asking about a concept/term rather than asking for cards
-    const hasConceptKeywords = conceptKeywords.some(keyword => queryLower.includes(keyword));
-    
-    // If it's a specific question pattern AND has concept keywords, it's likely a definition/explanation question
-    // But we need to be careful - some questions like "What is the best card?" should still return cards
-    if (hasConceptKeywords) {
-      // Additional check: if it contains recommendation-seeking words, it might still want cards
-      const recommendationSeekingWords = [
-        'best', 'recommend', 'suggest', 'should i', 'which', 'what card', 'card for'
-      ];
-      const isSeekingRecommendation = recommendationSeekingWords.some(word => queryLower.includes(word));
-      
-      if (!isSeekingRecommendation) {
-        console.log('Query is a specific definition/explanation question, skipping cards');
-        return false;
-      }
+    // If it's a definition/explanation pattern (what is, what's, how does, etc.) 
+    // and NOT seeking recommendations, treat it as a general question
+    if (!isSeekingRecommendation) {
+      console.log('Query is a specific definition/explanation question, skipping cards');
+      return false;
     }
+    // If it IS seeking recommendations (e.g., "What is the best card?"), continue to return cards
   }
   
   // Quick heuristic check: if query contains recommendation keywords, default to cards
+  // BUT only if it's NOT a definition/explanation question (checked above)
   const recommendationKeywords = [
     'best', 'recommend', 'suggest', 'card for', 'looking for', 'need', 'want',
     'which card', 'what card', 'find', 'show me', 'give me', 'help me find',
-    'travel', 'groceries', 'gas', 'cash back', 'points', 'rewards', 'annual fee',
+    'travel', 'groceries', 'gas', 'points', 'rewards', 'annual fee',
     'starter', 'good credit', 'bad credit', 'student', 'business'
   ];
+  
+  // Note: Removed 'cash back' from recommendation keywords because it can appear in definition questions
+  // like "what is cash back?" - those should be handled by the definition pattern check above
   
   const hasRecommendationKeywords = recommendationKeywords.some(keyword => 
     queryLower.includes(keyword)
@@ -473,7 +471,11 @@ async function generateGeneralAnswer(
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     {
       role: 'system',
-      content: `You are a helpful credit card assistant. Answer the user's question about credit cards in a friendly, conversational way. Keep responses concise (2-4 sentences). Return JSON: {"summary": "your answer"}`,
+      content: `You are a helpful credit card assistant. Answer the user's question about credit cards in a friendly, conversational way. Keep responses concise (1-3 sentences). 
+
+IMPORTANT: For definition or explanation questions (e.g., "what is cash back?", "how does APR work?"), provide a clear, direct answer about the concept itself. Do NOT mention specific credit cards or provide card recommendations. Just explain the concept.
+
+Return JSON: {"summary": "your answer"}`,
     },
   ];
 
@@ -880,7 +882,8 @@ CRITICAL:
   4. Closing sentence (1 sentence only)
 - Always list ALL individual cards from the cards array in the summary
 - Make it conversational, warm, and visually structured
-- CRITICAL: Each card MUST be on a separate line with proper spacing`;
+- CRITICAL: Each card MUST be on a separate line with proper spacing
+- CRITICAL: Each card name should appear ONLY ONCE per listing. Use format - **[Card Name](url)** - description. DO NOT repeat card names like - **Card Name**Card Name or - **Card Name**[Card Name](url).`;
 
     // Build conversation history for context
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -906,11 +909,13 @@ ${context}
 
 Create a conversational, well-structured markdown response that:
 1. Starts with a brief personalized opening (1 sentence only) acknowledging their question
-2. Lists each card on a separate line as: - **Card Name** (as markdown link [Card Name](url)) - 1-2 sentence description
+2. Lists each card on a separate line as: - **[Card Name](url)** - 1-2 sentence description
+   IMPORTANT: Use ONLY the markdown link format [Card Name](url) wrapped in bold **. DO NOT repeat the card name outside the link.
 3. Each card MUST be on its own line with a blank line between cards (double line break)
 4. Ends with a brief closing (1 sentence only) summarizing key takeaway
 
-ALWAYS list ALL individual cards from your recommendations in the summary using the format above. Include both the card name and URL in the markdown link format. Each card MUST be on a separate line.
+ALWAYS list ALL individual cards from your recommendations in the summary using the format: - **[Card Name](url)** - description
+CRITICAL: Each card name should appear ONLY ONCE per card listing. Use the format - **[Card Name](url)** - description, NOT - **Card Name**Card Name or - **Card Name**[Card Name](url).
 
 For each card in the "cards" array, you MUST include:
 - "card_summary": A concise 1-2 sentence summary of the card's key value proposition

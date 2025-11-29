@@ -7,13 +7,18 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        heading: ['var(--font-heading)', 'sans-serif'],
+        body: ['var(--font-heading)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+      },
       colors: {
         primary: {
-          DEFAULT: 'hsl(195 100% 45%)',
-          light: 'hsl(195 100% 60%)',
+          DEFAULT: 'hsl(174 72% 40%)',
+          light: 'hsl(174 72% 50%)',
         },
-        'primary-glow': 'hsl(195 100% 60%)',
-        accent: 'hsl(195 100% 45%)',
+        'primary-glow': 'hsl(174 72% 50%)',
+        accent: 'hsl(174 72% 40%)',
         gradient: {
           start: 'hsl(195 100% 45%)',
           end: 'hsl(220 90% 60%)',
@@ -23,21 +28,24 @@ module.exports = {
         },
         foreground: '#0F172A', // slate-900
         'card-foreground': '#0F172A', // slate-900 - same as foreground for card text
-        'muted-foreground': '#64748B', // slate-500
-        background: '#F8FAFC', // slate-50
+        'muted-foreground': 'hsl(215 15% 50%)',
+        background: 'hsl(210 40% 98%)',
         card: '#FFFFFF', // HSL 0 0% 100% light mode
         input: '#E2E8F0', // HSL 220 13% 91% light mode (slate-200)
-        ring: 'hsl(195 100% 45%)', // Primary color for focus ring
+        ring: 'hsl(174 72% 40%)', // Primary color for focus ring
         border: '#E2E8F0', // slate-200
         success: '#10B981', // emerald-500
-        secondary: '#F1F5F9', // slate-100
+        secondary: 'hsl(174 45% 95%)',
         'secondary-foreground': '#0F172A', // slate-900
         'primary-foreground': '#FFFFFF', // white
         muted: '#F1F5F9', // slate-100
       },
+      borderRadius: {
+        DEFAULT: '0.75rem',
+      },
       boxShadow: {
         'card': '0 2px 8px rgba(0, 0, 0, 0.04)', // Light mode
-        'elegant': '0 10px 40px -10px hsl(195 100% 45% / 0.15)',
+        'elegant': '0 10px 40px -10px hsl(174 72% 40% / 0.15)',
         'card-hover': '0 4px 20px -4px hsl(220 13% 13% / 0.08)',
       },
       backgroundImage: {
