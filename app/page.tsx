@@ -250,8 +250,14 @@ export default function Home() {
   // Replace four asterisks with a space
   const replaceFourAsterisks = (text: string): string => {
     if (!text) return text;
+    const before = text;
     // Replace any occurrence of 4 or more consecutive asterisks with a single space
-    return text.replace(/\*{4,}/g, ' ');
+    const after = text.replace(/\*{4,}/g, ' ');
+    if (before !== after) {
+      console.log('replaceFourAsterisks - BEFORE:', before.substring(0, 200));
+      console.log('replaceFourAsterisks - AFTER:', after.substring(0, 200));
+    }
+    return after;
   };
 
   // Remove repeated credit card names
@@ -266,7 +272,13 @@ export default function Home() {
       // Match: CardName followed by the same CardName (with optional whitespace between)
       // This catches: "Visa Platinum Visa Platinum" or "Visa Platinum  Visa Platinum"
       const repeatedPattern = new RegExp(`(${escapedName})\\s+${escapedName}`, 'gi');
+      const before = cleaned;
       cleaned = cleaned.replace(repeatedPattern, '$1');
+      if (before !== cleaned) {
+        console.log(`removeRepeatedCardNames - Removed duplicate: ${cardName}`);
+        console.log('BEFORE:', before.substring(0, 200));
+        console.log('AFTER:', cleaned.substring(0, 200));
+      }
     });
 
     return cleaned;
