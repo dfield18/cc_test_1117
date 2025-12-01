@@ -955,6 +955,11 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
           const cardName = rec.credit_card_name;
           const escapedName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+          // Remove broken/truncated markdown links followed by correct ones
+          // Pattern: "- **[Card Name](https://www.\n\n- **[Card Name](full-url)**"
+          const brokenLinkPattern = new RegExp(`-\\s*\\*\\*\\[${escapedName}\\]\\([^)]*\\)\\*\\*\\s*\\n\\n-\\s*\\*\\*\\[(${escapedName})\\]\\(([^)]+)\\)\\*\\*`, 'gi');
+          summary = summary.replace(brokenLinkPattern, '- **[$1]($2)**');
+
           // Remove "**CardName** - " at the start of list items (duplicate in reason field showing in summary)
           const duplicateInListItem = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\s*\\*\\*${escapedName}\\*\\*\\s*[-–—]?\\s*`, 'gi');
           summary = summary.replace(duplicateInListItem, '$1 - ');
@@ -962,6 +967,11 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
           // Remove card name appearing right after markdown link with 4 asterisks between
           const fourAsterisksAfterLink = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\*{2,}${escapedName}\\s*[-–—]?\\s*`, 'gi');
           summary = summary.replace(fourAsterisksAfterLink, '$1 - ');
+
+          // Remove incomplete/broken markdown links at the end of summary
+          // Pattern: "com/path/to/card/)** - description" (URL fragment without the beginning)
+          const brokenUrlFragment = /[a-z]+\/[^\s\n]+\)\*\*\s*-\s*[^\n]+$/gi;
+          summary = summary.replace(brokenUrlFragment, '');
         });
         console.log('Summary (after cleanup):', summary);
       }
