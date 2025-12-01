@@ -951,24 +951,23 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
       if (recommendations.length > 0) {
         console.log('Summary (before cleanup):', summary);
 
-        // Remove broken/incomplete markdown links
-        // Pattern: "- **[Card Name](https://www." or similar incomplete URLs
-        summary = summary.replace(/-\s*\*\*\[[^\]]+\]\(https?:\/\/www\.\)\*\*\s*\n*/gi, '');
-        summary = summary.replace(/-\s*\*\*\[[^\]]+\]\(https?:\/\/[a-z]{0,5}\.\)\*\*\s*\n*/gi, '');
-
-        // Clean up for each card
-        recommendations.forEach(rec => {
-          const cardName = rec.credit_card_name;
-          const escapedName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-          // Remove "**CardName** - " at start of list items
-          const duplicateInListItem = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\s*\\*\\*${escapedName}\\*\\*\\s*[-–—]?\\s*`, 'gi');
-          summary = summary.replace(duplicateInListItem, '$1 - ');
-
-          // Remove card name with 4+ asterisks between
-          const fourAsterisksAfterLink = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\*{2,}${escapedName}\\s*[-–—]?\\s*`, 'gi');
-          summary = summary.replace(fourAsterisksAfterLink, '$1 - ');
+        // Remove list items with obviously broken/truncated URLs
+        // Pattern: "- **[Card Name](https://www." with very short URL (less than 15 chars)
+        const lines = summary.split('\n');
+        const cleanedLines = lines.filter(line => {
+          // Check if this is a list item with a markdown link
+          const linkMatch = line.match(/-\s*\*\*\[[^\]]+\]\(([^)]*)\)\*\*/);
+          if (linkMatch) {
+            const url = linkMatch[1];
+            // Remove if URL is suspiciously short (broken/truncated)
+            if (url.length < 15) {
+              console.log('Removing line with broken URL:', line);
+              return false;
+            }
+          }
+          return true;
         });
+        summary = cleanedLines.join('\n');
 
         console.log('Summary (after cleanup):', summary);
       }
