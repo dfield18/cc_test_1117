@@ -951,14 +951,32 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
       // Clean duplicate card names from summary
       // Pattern: "**[Card Name](url)****Card Name**" or "**[Card Name](url)** **Card Name**"
       if (recommendations.length > 0) {
+        console.log('Summary (before cleanup):', summary);
+
+        // First pass: Remove broken/incomplete markdown links (URLs ending with www. or incomplete domains)
+        // Pattern: "- **[Card Name](https://www." or similar incomplete URLs
+        summary = summary.replace(/-\s*\*\*\[[^\]]+\]\(https?:\/\/[^)\/\s]{0,10}\)\*\*\s*\n+/gi, '');
+
+        // Second pass: Remove duplicate list items for each card
         recommendations.forEach(rec => {
           const cardName = rec.credit_card_name;
           const escapedName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const applyUrl = rec.apply_url;
 
-          // Remove broken/truncated markdown links followed by correct ones
-          // Pattern: "- **[Card Name](https://www.\n\n- **[Card Name](full-url)**"
-          const brokenLinkPattern = new RegExp(`-\\s*\\*\\*\\[${escapedName}\\]\\([^)]*\\)\\*\\*\\s*\\n\\n-\\s*\\*\\*\\[(${escapedName})\\]\\(([^)]+)\\)\\*\\*`, 'gi');
-          summary = summary.replace(brokenLinkPattern, '- **[$1]($2)**');
+          // If the same card appears multiple times as list items, keep only the one with the correct URL
+          const duplicateListPattern = new RegExp(`(-\\s*\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*[^\\n]*\\n+)+`, 'gi');
+          const matches = summary.match(duplicateListPattern);
+
+          if (matches && matches.length > 0) {
+            matches.forEach(match => {
+              // Keep only the instance with the correct apply_url
+              const lines = match.split(/\n+/);
+              const correctLine = lines.find(line => line.includes(applyUrl));
+              if (correctLine && lines.length > 1) {
+                summary = summary.replace(match, correctLine + '\n\n');
+              }
+            });
+          }
 
           // Remove "**CardName** - " at the start of list items (duplicate in reason field showing in summary)
           const duplicateInListItem = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\s*\\*\\*${escapedName}\\*\\*\\s*[-–—]?\\s*`, 'gi');
@@ -967,12 +985,11 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
           // Remove card name appearing right after markdown link with 4 asterisks between
           const fourAsterisksAfterLink = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\*{2,}${escapedName}\\s*[-–—]?\\s*`, 'gi');
           summary = summary.replace(fourAsterisksAfterLink, '$1 - ');
-
-          // Remove incomplete/broken markdown links at the end of summary
-          // Pattern: "com/path/to/card/)** - description" (URL fragment without the beginning)
-          const brokenUrlFragment = /[a-z]+\/[^\s\n]+\)\*\*\s*-\s*[^\n]+$/gi;
-          summary = summary.replace(brokenUrlFragment, '');
         });
+
+        // Remove any remaining URL fragments at the end
+        summary = summary.replace(/[a-z]+\/[^\s\n]+\)\*\*\s*-\s*[^\n]+$/gi, '');
+
         console.log('Summary (after cleanup):', summary);
       }
       
