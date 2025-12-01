@@ -247,10 +247,35 @@ export default function Home() {
     return cleaned;
   };
 
+  // Replace four asterisks with a space
+  const replaceFourAsterisks = (text: string): string => {
+    if (!text) return text;
+    // Replace any occurrence of 4 or more consecutive asterisks with a single space
+    return text.replace(/\*{4,}/g, ' ');
+  };
+
+  // Remove repeated credit card names
+  const removeRepeatedCardNames = (text: string, recommendations?: Recommendation[]): string => {
+    if (!text || !recommendations || recommendations.length === 0) return text;
+
+    let cleaned = text;
+    recommendations.forEach(rec => {
+      const cardName = rec.credit_card_name;
+      const escapedName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Match: CardName followed by the same CardName (with optional whitespace between)
+      // This catches: "Visa Platinum Visa Platinum" or "Visa Platinum  Visa Platinum"
+      const repeatedPattern = new RegExp(`(${escapedName})\\s+${escapedName}`, 'gi');
+      cleaned = cleaned.replace(repeatedPattern, '$1');
+    });
+
+    return cleaned;
+  };
+
   const removeDuplicateCardNames = (text: string, recommendations?: Recommendation[]): string => {
     if (!text) return text;
     let cleaned = text;
-    
+
     // First, use recommendations to do direct string replacement for known card names
     // This is the most reliable approach
     if (recommendations && recommendations.length > 0) {
@@ -3392,7 +3417,13 @@ export default function Home() {
                                               let displayText = message.recommendations && message.recommendations.length > 0
                                                 ? processMarkdownSummary(message.summary, message.recommendations)
                                                 : message.summary;
-                                              
+
+                                              // Clean up four asterisks first
+                                              displayText = replaceFourAsterisks(displayText);
+
+                                              // Remove repeated card names
+                                              displayText = removeRepeatedCardNames(displayText, message.recommendations);
+
                                               // Remove duplicate card names early, before other processing
                                               displayText = removeDuplicateCardNames(displayText, message.recommendations);
                                               
@@ -3798,7 +3829,13 @@ export default function Home() {
                                         let displayText = message.recommendations && message.recommendations.length > 0
                                           ? processMarkdownSummary(message.summary, message.recommendations)
                                           : message.summary;
-                                        
+
+                                        // Clean up four asterisks first
+                                        displayText = replaceFourAsterisks(displayText);
+
+                                        // Remove repeated card names
+                                        displayText = removeRepeatedCardNames(displayText, message.recommendations);
+
                                         // Remove duplicate card names early, before other processing
                                         displayText = removeDuplicateCardNames(displayText, message.recommendations);
                                         
