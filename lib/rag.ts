@@ -945,7 +945,6 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
       let summary = parsed.summary || '';
 
       console.log('Parsed recommendations count:', recommendations.length);
-      console.log('Summary (before cleanup):', summary);
       console.log('Raw parsed object:', JSON.stringify(parsed, null, 2));
 
       // Clean duplicate card names from summary
