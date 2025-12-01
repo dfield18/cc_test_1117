@@ -289,6 +289,16 @@ export default function Home() {
         const duplicatePattern3 = new RegExp(`(${escapedCardName})\\*+\\1`, 'gi');
         cleaned = cleaned.replace(duplicatePattern3, '$1');
         
+        // Pattern 7b: Handle "**cardName****cardName**" - bold, 4 asterisks, bold
+        // This catches: "**Visa Platinum****Visa Platinum**" -> "**Visa Platinum**"
+        const fourAsterisksPattern = new RegExp(`\\*\\*${escapedCardName}\\*{4}${escapedCardName}\\*\\*`, 'gi');
+        cleaned = cleaned.replace(fourAsterisksPattern, `**${cardName}**`);
+
+        // Pattern 7c: Handle "**cardName**[cardName](url)**" - bold text then markdown link with extra bold
+        // This catches: "**Visa Platinum**[Visa Platinum](url)**" -> "**[Visa Platinum](url)**"
+        const boldThenLinkPattern = new RegExp(`\\*\\*${escapedCardName}\\*\\*\\[${escapedCardName}\\]\\(([^)]+)\\)\\*\\*`, 'gi');
+        cleaned = cleaned.replace(boldThenLinkPattern, (match, url) => `**[${cardName}](${url})**`);
+
         // Pattern 8: Remove duplicate card name that appears right after "**cardName**"
         // This handles: "**cardName**cardName" -> "**cardName**"
         const afterMarkdownPattern = new RegExp(`\\*\\*${escapedCardName}\\*\\*\\s*${escapedCardName}`, 'gi');
