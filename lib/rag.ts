@@ -942,11 +942,29 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
     try {
       const parsed = JSON.parse(rawAnswer);
       const recommendations: Recommendation[] = parsed.cards || [];
-      const summary = parsed.summary || '';
-      
+      let summary = parsed.summary || '';
+
       console.log('Parsed recommendations count:', recommendations.length);
-      console.log('Summary:', summary);
+      console.log('Summary (before cleanup):', summary);
       console.log('Raw parsed object:', JSON.stringify(parsed, null, 2));
+
+      // Clean duplicate card names from summary
+      // Pattern: "**[Card Name](url)****Card Name**" or "**[Card Name](url)** **Card Name**"
+      if (recommendations.length > 0) {
+        recommendations.forEach(rec => {
+          const cardName = rec.credit_card_name;
+          const escapedName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+          // Remove "**CardName** - " at the start of list items (duplicate in reason field showing in summary)
+          const duplicateInListItem = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\s*\\*\\*${escapedName}\\*\\*\\s*[-–—]?\\s*`, 'gi');
+          summary = summary.replace(duplicateInListItem, '$1 - ');
+
+          // Remove card name appearing right after markdown link with 4 asterisks between
+          const fourAsterisksAfterLink = new RegExp(`(\\*\\*\\[${escapedName}\\]\\([^)]+\\)\\*\\*)\\*{2,}${escapedName}\\s*[-–—]?\\s*`, 'gi');
+          summary = summary.replace(fourAsterisksAfterLink, '$1 - ');
+        });
+        console.log('Summary (after cleanup):', summary);
+      }
       
       // If no cards were returned, log a warning
       if (recommendations.length === 0) {
@@ -1085,9 +1103,21 @@ Then recommend exactly 3 cards (the best 3). Return JSON with the formatted mark
           }
           
           // Build cards list with proper markdown formatting - each on separate line
-          const cardsText = finalRecommendations.map(rec => 
-            `- **[${rec.credit_card_name}](${rec.apply_url})** - ${rec.reason}`
-          ).join('\n\n');
+          const cardsText = finalRecommendations.map(rec => {
+            // Clean the reason field to remove duplicate card name if it appears at the start
+            let cleanReason = rec.reason;
+            const cardName = rec.credit_card_name;
+
+            // Remove card name with bold markdown: "**Card Name** - description" -> "description"
+            const boldCardNamePattern = new RegExp(`^\\*\\*${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*\\s*[-–—]?\\s*`, 'i');
+            cleanReason = cleanReason.replace(boldCardNamePattern, '');
+
+            // Remove card name without markdown: "Card Name - description" -> "description"
+            const plainCardNamePattern = new RegExp(`^${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[-–—]?\\s*`, 'i');
+            cleanReason = cleanReason.replace(plainCardNamePattern, '');
+
+            return `- **[${rec.credit_card_name}](${rec.apply_url})** - ${cleanReason}`;
+          }).join('\n\n');
           
           // Extract or generate closing recap (1 sentence only)
           let closingRecap = '';
